@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useRobotModels } from '../hooks/useRobotModels'
 import { useParts } from '../hooks/useParts'
 import BOMEditor from '../components/BOMEditor'
+import AssemblyEditor from '../components/AssemblyEditor'
 
 export default function Models() {
   const { models, loading, addModel, deleteModel } = useRobotModels()
   const { parts } = useParts()
   const [selectedId, setSelectedId] = useState(null)
+  const [activeTab, setActiveTab] = useState('bom') // 'bom' | 'assembly'
   const [adding, setAdding] = useState(false)
   const [newModel, setNewModel] = useState({ name: '', description: '' })
   const [deleteConfirm, setDeleteConfirm] = useState(null)
@@ -23,11 +25,15 @@ export default function Models() {
     }
   }
 
+  const handleSelectModel = (id) => {
+    setSelectedId(id)
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Robot Models</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage models and their Bills of Materials.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Manage models, Bills of Materials, and assembly timelines.</p>
       </div>
 
       <div className="flex gap-6">
@@ -44,7 +50,7 @@ export default function Models() {
                     ? 'bg-sky-600 border-sky-600 text-white'
                     : 'bg-white border-gray-200 hover:border-sky-300'
                 }`}
-                onClick={() => setSelectedId(model.id)}
+                onClick={() => handleSelectModel(model.id)}
               >
                 <p className="font-semibold text-sm">{model.name}</p>
                 {model.description && (
@@ -107,9 +113,40 @@ export default function Models() {
           )}
         </div>
 
-        {/* BOM editor */}
-        <div className="flex-1">
-          <BOMEditor model={selectedModel} allParts={parts} />
+        {/* Right panel */}
+        <div className="flex-1 space-y-3">
+          {/* Tab switcher */}
+          {selectedModel && (
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setActiveTab('bom')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'bom'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                🔩 Bill of Materials
+              </button>
+              <button
+                onClick={() => setActiveTab('assembly')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'assembly'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                🏗️ Assembly Timeline
+              </button>
+            </div>
+          )}
+
+          {/* Tab content */}
+          {activeTab === 'bom' || !selectedModel ? (
+            <BOMEditor model={selectedModel} allParts={parts} />
+          ) : (
+            <AssemblyEditor model={selectedModel} />
+          )}
         </div>
       </div>
     </div>

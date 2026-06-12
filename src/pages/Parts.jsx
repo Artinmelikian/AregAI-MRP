@@ -1,5 +1,6 @@
 import { useParts } from '../hooks/useParts'
 import PartsTable from '../components/PartsTable'
+import BulkImportPanel from '../components/BulkImportPanel'
 
 export default function Parts() {
   const { parts, loading, addPart, updatePart, deletePart } = useParts()
@@ -10,6 +11,7 @@ export default function Parts() {
         <h1 className="text-2xl font-bold text-gray-900">Parts & Inventory</h1>
         <p className="text-sm text-gray-500 mt-0.5">Click any cell to edit inline. Changes are saved immediately.</p>
       </div>
+      <BulkImportPanel parts={parts} onAdd={addPart} onUpdate={updatePart} />
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">Loading parts…</div>
       ) : (

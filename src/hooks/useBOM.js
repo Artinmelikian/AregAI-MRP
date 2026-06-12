@@ -33,13 +33,17 @@ export function useBOM(robotModelId) {
     return true
   }
 
-  const updateItem = async (id, quantityPerUnit) => {
+  const updateItem = async (id, updates) => {
+    // Accept either a plain qty number (legacy) or an updates object
+    const payload = typeof updates === 'object'
+      ? { ...updates, updated_at: new Date().toISOString() }
+      : { quantity_per_unit: updates, updated_at: new Date().toISOString() }
     const { error } = await supabase
       .from('bom_items')
-      .update({ quantity_per_unit: quantityPerUnit, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', id)
     if (error) { toast.error(error.message); return false }
-    setItems(prev => prev.map(i => i.id === id ? { ...i, quantity_per_unit: quantityPerUnit } : i))
+    setItems(prev => prev.map(i => i.id === id ? { ...i, ...payload } : i))
     return true
   }
 

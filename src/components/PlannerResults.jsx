@@ -1,7 +1,8 @@
 import { format } from 'date-fns'
 
 export default function PlannerResults({ results, onReset }) {
-  const { rows, feasible, targetDate } = results
+  const { rows, feasible, targetDate, partsNeededBy, maxAssemblyDays, assemblyByModel } = results
+  const hasAssemblyData = maxAssemblyDays > 0
 
   return (
     <div className="space-y-4">
@@ -25,11 +26,75 @@ export default function PlannerResults({ results, onReset }) {
         </button>
       </div>
 
-      {/* Results table */}
+      {/* Assembly Timeline */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50">
+          <h3 className="text-sm font-semibold text-gray-700">🏗️ Assembly Timeline</h3>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+            <thead className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
+              <tr>
+                <th className="px-4 py-2.5 text-left font-medium">Model</th>
+                <th className="px-4 py-2.5 text-right font-medium">Qty</th>
+                <th className="px-4 py-2.5 text-right font-medium">⚙️ Mechanical</th>
+                <th className="px-4 py-2.5 text-right font-medium">⚡ Electrical</th>
+                <th className="px-4 py-2.5 text-right font-medium">Total</th>
+                <th className="px-4 py-2.5 text-center font-medium">Parts Needed By</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {Object.values(assemblyByModel).map(({ modelName, qty, mechDays, elecDays, totalDays }) => {
+                const isBottleneck = totalDays === maxAssemblyDays && maxAssemblyDays > 0
+                return (
+                  <tr key={modelName} className={isBottleneck ? 'bg-orange-50' : ''}>
+                    <td className="px-4 py-2.5 font-medium">
+                      {modelName}
+                      {isBottleneck && maxAssemblyDays > 0 && (
+                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-orange-200 text-orange-800 rounded font-bold">BOTTLENECK</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{qty}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">{mechDays.toFixed(1)}d</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">{elecDays.toFixed(1)}d</td>
+                    <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{totalDays.toFixed(1)}d</td>
+                    <td className="px-4 py-2.5 text-center text-gray-600">
+                      {format(partsNeededBy, 'MMM d, yyyy')}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot className="border-t-2 border-gray-200 bg-gray-50">
+              <tr>
+                <td colSpan={4} className="px-4 py-2.5 text-sm text-gray-500">
+                  {hasAssemblyData
+                    ? `Planning buffer: ${maxAssemblyDays.toFixed(1)} days (longest model)`
+                    : 'No assembly times configured — go to Robot Models → Assembly Timeline to set them'}
+                </td>
+                <td className="px-4 py-2.5 text-right font-bold">{maxAssemblyDays.toFixed(1)}d</td>
+                <td className="px-4 py-2.5 text-center font-semibold text-sky-700">
+                  {format(partsNeededBy, 'MMM d, yyyy')}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* Parts requirements table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50">
+          <h3 className="text-sm font-semibold text-gray-700">🔩 Parts Requirements</h3>
+          {hasAssemblyData && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              Order By Date = Parts Needed By ({format(partsNeededBy, 'MMM d')}) − Part Lead Time
+            </p>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Part</th>
                 <th className="px-4 py-3 text-right font-medium">Required</th>

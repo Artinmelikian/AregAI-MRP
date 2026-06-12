@@ -1,93 +1,76 @@
-# AregAI MRP — Claude Context
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this app does
-Lightweight MRP (Material Requirements Planning) system for AregAI's robot production planning. Staff use it to manage Bills of Materials per robot model, track parts inventory, run mixed-batch production feasibility checks, and monitor reorder alerts.
+Lightweight MRP (Material Requirements Planning) system for AregAI's robot production planning. Staff manage Bills of Materials per robot model, track parts inventory, run mixed-batch production feasibility checks, and monitor reorder alerts.
 
-## Tech Stack
-- **React 18 + Vite** — frontend SPA
-- **Tailwind CSS v3** — utility-first styling, no component library
-- **React Router v6** — client-side routing with `BrowserRouter`
-- **Supabase** — Postgres database + Row-Level Security + email/password auth
-- **date-fns** — date arithmetic (subDays, isBefore, format)
-- **react-hot-toast** — toast notifications
-- **Vercel** — hosting (SPA rewrites via vercel.json)
+## Commands
+```bash
+npm run dev      # Start dev server (usually port 5173 or 5174)
+npm run build    # Production build
+npm run preview  # Preview production build locally
+```
 
-## Environment Variables
-Copy `.env.local.example` → `.env.local` and fill in values from Supabase Dashboard → Project Settings → API:
+## Environment
+Copy `.env.local.example` → `.env.local`:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-## Database Schema
-Run `supabase/schema.sql` in the Supabase SQL editor. Tables:
-- `robot_models` — SOBOT, MOWBOT, CBOT, and future models
-- `parts` — stock_level, lead_time_days, reorder_threshold, unit
-- `bom_items` — many-to-many: robot_model_id + part_id + quantity_per_unit
+## Database
+Run `supabase/schema.sql` in Supabase SQL Editor to create all tables. Tables:
+- `robot_models` — robot model definitions (SOBOT, MOWBOT, CBOT + any added via UI)
+- `parts` — inventory: stock_level, lead_time_days, reorder_threshold, unit, link
+- `bom_items` — many-to-many robot↔parts with quantity_per_unit and link
+- `assembly_stages` — per-model assembly breakdown: category ('mechanical'|'electrical'), duration_days, order_index
 
-All tables have RLS enabled; authenticated users have full read/write access.
+All tables have RLS enabled; authenticated users have full read/write. New tables must follow the same pattern: `alter table X enable row level security` + `create policy "authenticated_all" on X for all to authenticated using (true) with check (true)`.
 
-## Project Structure
+## Architecture
+
+### Data flow
+Each page uses one or more custom hooks that own all Supabase queries and local state. Components receive data and callbacks as props — no component talks to Supabase directly.
+
+### Hooks (`src/hooks/`)
+- `useRobotModels` — CRUD for robot_models
+- `useParts` — CRUD for parts; exposes `lowStockParts` (stock_level ≤ reorder_threshold); ordered by `created_at` ascending (insertion order)
+- `useBOM(robotModelId)` — CRUD for bom_items for one model
+- `useAssemblyStages(robotModelId)` — fetches assembly_stages; auto-seeds the 8 default stages (4 mechanical + 4 electrical) if none exist for the model; returns `mechanicalStages`, `electricalStages`, `totalAssemblyDays`
+- `useProduction` — core MRP engine: fetches BOM + assembly stages in parallel, aggregates required parts across batch, computes shortage/orderByDate accounting for assembly lead time
+
+### MRP calculation (`useProduction.js`)
 ```
-src/
-  lib/supabase.js          # Supabase client (singleton)
-  hooks/
-    useRobotModels.js      # CRUD: robot_models table
-    useParts.js            # CRUD: parts table; computes lowStockParts
-    useBOM.js              # CRUD: bom_items for a given robot model
-    useProduction.js       # MRP calculation logic (client-side)
-  components/
-    Layout.jsx             # Sidebar nav + page shell
-    ReorderAlerts.jsx      # Alert cards for low/out-of-stock parts
-    PartsTable.jsx         # Inline-editable inventory table
-    BOMEditor.jsx          # BOM table with inline qty editing + add/remove
-    PlannerForm.jsx        # Mixed-batch input + date picker
-    PlannerResults.jsx     # Results table with color coding + status banner
-  pages/
-    Login.jsx              # Email/password auth form
-    Dashboard.jsx          # Stat cards + ReorderAlerts
-    Parts.jsx              # Parts & Inventory page
-    Models.jsx             # Robot model list + BOMEditor panel
-    Planner.jsx            # Production planner (form → results)
-  App.jsx                  # Routes + AuthGuard
-  main.jsx                 # React entry point
+assemblyDays     = max(totalAssemblyDays across all models in batch)
+partsNeededBy    = targetDate − assemblyDays
+orderByDate      = partsNeededBy − part.lead_time_days
+isUrgent         = orderByDate < today
+shortage         = max(0, required − inStock)
+feasible         = all shortages === 0
 ```
 
-## Key Patterns
+### Key UI patterns
+**Inline editing** — click any cell → `<input>` appears → blur or Enter saves to Supabase, Escape cancels. Used in `PartsTable`, `BOMEditor`, `AssemblyEditor`. The `EditableCell` pattern: local `editing` state, `draft` value, `commit()` on blur/Enter.
 
-### Inline editing
-Click any table cell → shows `<input>` → blur or Enter saves to Supabase. Escape cancels. Pattern used in `PartsTable`, `BOMEditor`.
+**Link field** — accepts plain text or URLs. Renders as clickable `<a>` only when value matches `/^https?:\/\//`. Used in both `PartsTable` and `BOMEditor`.
 
-### MRP Calculation (useProduction.js)
-1. Fetch all BOM items for models in the batch (single query with `.in()`)
-2. Aggregate `quantity_per_unit × qty` per part across all models
-3. Compute shortage = max(0, required − in_stock)
-4. Compute orderByDate = targetDate − lead_time_days
-5. Flag isUrgent if orderByDate < today
+**Drag-to-reorder columns** — `PartsTable` supports HTML5 drag-and-drop on `<th>` elements. Column order is persisted in `localStorage` under key `parts-column-order`.
 
-### Color coding convention
+**Bulk import** — `BulkImportPanel` parses tab-separated clipboard data from Google Sheets, maps columns, previews add/update actions, then calls `onAdd`/`onUpdate` per row.
+
+**Assembly auto-seed** — `useAssemblyStages` inserts the 8 default stages via upsert with `onConflict: 'robot_model_id,category,order_index'` to prevent React StrictMode double-invocation duplicates. The unique constraint `assembly_stages_unique` must exist in the DB.
+
+### Color coding
 - Green: sufficient stock / no shortage
-- Orange: at reorder threshold (warning)
-- Red: below threshold / shortage / urgent
+- Orange: at or near reorder threshold
+- Red: shortage / urgent / out of stock
 
 ### Auth
-Supabase email/password. `AuthGuard` in App.jsx checks session on mount and listens for auth state changes. Redirect to `/login` if no session.
+Supabase email/password. `AuthGuard` in `App.jsx` wraps all protected routes, checks session on mount, and listens to `onAuthStateChange`. `supabaseConfigured` flag in `src/lib/supabase.js` shows a setup screen instead of crashing when env vars are missing.
 
-## Running Locally
-```bash
-npm install
-cp .env.local.example .env.local
-# Fill in Supabase values, then:
-npm run dev
-```
+## Adding features
+- **New page**: add to `src/pages/`, route in `App.jsx`, nav item in `Layout.jsx`
+- **New DB table**: add to `supabase/schema.sql` with RLS, create hook in `src/hooks/`
+- **New robot model**: no code changes — add via the Robot Models UI
 
-## Deploying to Vercel
-1. Push to GitHub
-2. Import repo in Vercel
-3. Add env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-4. Deploy — `vercel.json` handles SPA routing
-
-## Adding a New Robot Model
-No code changes needed — add via the Robot Models UI. The BOM editor and Production Planner automatically pick it up.
-
-## Adding a New Feature
-- New page: add to `src/pages/`, add a route in `App.jsx`, add a nav item in `Layout.jsx`
-- New table: add to `supabase/schema.sql`, create RLS policy, write a hook in `src/hooks/`
+## Deployment
+Push to GitHub → import in Vercel → add the two env vars → deploy. `vercel.json` handles SPA routing rewrites.

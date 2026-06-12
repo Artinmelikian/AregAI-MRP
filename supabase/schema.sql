@@ -48,6 +48,21 @@ create policy "authenticated_all" on robot_models for all to authenticated using
 create policy "authenticated_all" on parts for all to authenticated using (true) with check (true);
 create policy "authenticated_all" on bom_items for all to authenticated using (true) with check (true);
 
+-- Assembly stages (mechanical + electrical breakdown per robot model)
+create table if not exists assembly_stages (
+  id uuid primary key default gen_random_uuid(),
+  robot_model_id uuid not null references robot_models(id) on delete cascade,
+  category text not null check (category in ('mechanical', 'electrical')),
+  name text not null,
+  duration_days numeric(5,1) not null default 0,
+  order_index integer not null default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table assembly_stages enable row level security;
+create policy "authenticated_all" on assembly_stages for all to authenticated using (true) with check (true);
+
 -- ============================================================
 -- Seed Data
 -- ============================================================

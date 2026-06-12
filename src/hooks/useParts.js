@@ -11,7 +11,7 @@ export function useParts() {
     const { data, error } = await supabase
       .from('parts')
       .select('*')
-      .order('name')
+      .order('created_at', { ascending: true })
     if (error) toast.error('Failed to load parts')
     else setParts(data)
     setLoading(false)
@@ -26,7 +26,7 @@ export function useParts() {
       .select()
       .single()
     if (error) { toast.error(error.message); return null }
-    setParts(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+    setParts(prev => [...prev, data])
     toast.success(`${data.name} added`)
     return data
   }
