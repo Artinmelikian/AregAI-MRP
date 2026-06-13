@@ -109,8 +109,8 @@ function EditableLink({ value, onSave }) {
   )
 }
 
-export default function BOMEditor({ model, allParts }) {
-  const { items, loading, addItem, updateItem, removeItem } = useBOM(model?.id)
+export default function BOMEditor({ model, allParts, onUpdatePart }) {
+  const { items, loading, addItem, updateItem, removeItem, refresh } = useBOM(model?.id)
   const [selectedPartId, setSelectedPartId] = useState('')
   const [qty, setQty] = useState(1)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
@@ -185,13 +185,13 @@ export default function BOMEditor({ model, allParts }) {
           <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
               {[
-                ['part', 'Part'],
-                ['unit', 'Unit'],
-                ['qty', 'Qty / Unit'],
-                ['leadtime', 'Lead Time'],
-                ['link', 'Model / Link'],
-              ].map(([key, label]) => (
-                <th key={key} className="relative px-6 py-3 text-left font-medium">
+                ['part', 'Part', 'text-left'],
+                ['unit', 'Unit', 'text-left'],
+                ['qty', 'Qty / Unit', 'text-center'],
+                ['leadtime', 'Lead Time', 'text-center'],
+                ['link', 'Model / Link', 'text-left'],
+              ].map(([key, label, align]) => (
+                <th key={key} className={`relative px-6 py-3 font-medium ${align}`}>
                   <span className="truncate block pr-2">{label}</span>
                   <ResizeHandle
                     width={widths[key]}
@@ -207,17 +207,17 @@ export default function BOMEditor({ model, allParts }) {
               <tr key={item.id} className="hover:bg-gray-50">
                 <td className="px-6 py-3 font-medium overflow-hidden truncate">{item.parts.name}</td>
                 <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.unit}</td>
-                <td className="px-6 py-3 overflow-hidden">
+                <td className="px-6 py-3 text-center overflow-hidden">
                   <EditableQty
                     value={item.quantity_per_unit}
                     onSave={v => updateItem(item.id, v)}
                   />
                 </td>
-                <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.lead_time_days}d</td>
+                <td className="px-6 py-3 text-center text-gray-500 overflow-hidden truncate">{item.parts.lead_time_days}d</td>
                 <td className="px-6 py-3 overflow-hidden">
                   <EditableLink
-                    value={item.link}
-                    onSave={v => updateItem(item.id, { link: v })}
+                    value={item.parts.link}
+                    onSave={async v => { await onUpdatePart(item.parts.id, { link: v }); refresh() }}
                   />
                 </td>
                 <td className="px-6 py-3 text-right">

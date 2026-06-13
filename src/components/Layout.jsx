@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
@@ -10,8 +11,19 @@ const navItems = [
   { to: '/purchasing', label: 'Purchasing Tracker', icon: '🛒' },
 ]
 
+const COLLAPSE_KEY = 'sidebar-collapsed'
+
 export default function Layout({ children }) {
   const navigate = useNavigate()
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === 'true')
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem(COLLAPSE_KEY, String(next))
+      return next
+    })
+  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -22,10 +34,21 @@ export default function Layout({ children }) {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-56 bg-gray-900 flex flex-col flex-shrink-0">
-        <div className="px-5 py-5 border-b border-gray-700">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">AregAI</p>
-          <h1 className="text-white font-bold text-lg leading-tight">MRP System</h1>
+      <aside className={`${collapsed ? 'w-16' : 'w-56'} bg-gray-900 flex flex-col flex-shrink-0 transition-all duration-200`}>
+        <div className="px-5 py-5 border-b border-gray-700 flex items-center justify-between gap-2">
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">AregAI</p>
+              <h1 className="text-white font-bold text-lg leading-tight whitespace-nowrap">MRP System</h1>
+            </div>
+          )}
+          <button
+            onClick={toggleCollapsed}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          >
+            {collapsed ? '»' : '«'}
+          </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map(({ to, label, icon }) => (
@@ -33,8 +56,11 @@ export default function Layout({ children }) {
               key={to}
               to={to}
               end={to === '/'}
+              title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  collapsed ? 'justify-center' : ''
+                } ${
                   isActive
                     ? 'bg-sky-600 text-white'
                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -42,17 +68,20 @@ export default function Layout({ children }) {
               }
             >
               <span>{icon}</span>
-              {label}
+              {!collapsed && <span className="whitespace-nowrap overflow-hidden">{label}</span>}
             </NavLink>
           ))}
         </nav>
         <div className="px-3 py-4 border-t border-gray-700">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            title={collapsed ? 'Sign Out' : undefined}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors ${
+              collapsed ? 'justify-center' : ''
+            }`}
           >
             <span>🚪</span>
-            Sign Out
+            {!collapsed && 'Sign Out'}
           </button>
         </div>
       </aside>

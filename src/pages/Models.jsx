@@ -6,7 +6,7 @@ import AssemblyEditor from '../components/AssemblyEditor'
 
 export default function Models() {
   const { models, loading, addModel, deleteModel } = useRobotModels()
-  const { parts } = useParts()
+  const { parts, updatePart } = useParts()
   const [selectedId, setSelectedId] = useState(null)
   const [activeTab, setActiveTab] = useState('bom') // 'bom' | 'assembly'
   const [adding, setAdding] = useState(false)
@@ -143,7 +143,7 @@ export default function Models() {
 
           {/* Tab content */}
           {activeTab === 'bom' || !selectedModel ? (
-            <BOMEditor model={selectedModel} allParts={parts} />
+            <BOMEditor model={selectedModel} allParts={parts} onUpdatePart={updatePart} />
           ) : (
             <AssemblyEditor model={selectedModel} />
           )}

@@ -135,10 +135,10 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <tr>
                 {[
                   ['model', 'Model', 'text-left'],
-                  ['qty', 'Qty', 'text-right'],
-                  ['mech', '⚙️ Mechanical', 'text-right'],
-                  ['elec', '⚡ Electrical', 'text-right'],
-                  ['total', 'Total', 'text-right'],
+                  ['qty', 'Qty', 'text-center'],
+                  ['mech', '⚙️ Mechanical', 'text-center'],
+                  ['elec', '⚡ Electrical', 'text-center'],
+                  ['total', 'Total', 'text-center'],
                   ['partsNeededBy', 'Parts Needed By', 'text-center'],
                 ].map(([key, label, align]) => (
                   <th key={key} className={`relative px-4 py-2.5 font-medium ${align}`}>
@@ -159,10 +159,10 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                         <span className="ml-2 px-1.5 py-0.5 text-xs bg-orange-200 text-orange-800 rounded font-bold">BOTTLENECK</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{qty}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{mechDays.toFixed(1)}d</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{elecDays.toFixed(1)}d</td>
-                    <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{totalDays.toFixed(1)}d</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums text-gray-600">{qty}</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums">{mechDays.toFixed(1)}d</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums">{elecDays.toFixed(1)}d</td>
+                    <td className="px-4 py-2.5 text-center font-semibold tabular-nums">{totalDays.toFixed(1)}d</td>
                     <td className="px-4 py-2.5 text-center text-gray-600 overflow-hidden truncate">
                       {format(partsNeededBy, 'MMM d, yyyy')}
                     </td>
@@ -177,7 +177,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                     ? `Planning buffer: ${maxAssemblyDays.toFixed(1)} days (longest model)`
                     : 'No assembly times configured — go to Robot Models → Assembly Timeline to set them'}
                 </td>
-                <td className="px-4 py-2.5 text-right font-bold">{maxAssemblyDays.toFixed(1)}d</td>
+                <td className="px-4 py-2.5 text-center font-bold">{maxAssemblyDays.toFixed(1)}d</td>
                 <td className="px-4 py-2.5 text-center font-semibold text-sky-700">
                   {format(partsNeededBy, 'MMM d, yyyy')}
                 </td>
@@ -221,9 +221,9 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <tr>
                 {[
                   ['part', 'Part', 'text-left'],
-                  ['required', 'Required', 'text-right'],
-                  ['inStock', 'In Stock', 'text-right'],
-                  ['shortage', 'Shortage', 'text-right'],
+                  ['required', 'Required', 'text-center'],
+                  ['inStock', 'In Stock', 'text-center'],
+                  ['shortage', 'Shortage', 'text-center'],
                   ['orderBy', 'Order By Date', 'text-center'],
                   ['leadTime', 'Lead Time', 'text-center'],
                 ].map(([key, label, align]) => (
@@ -244,9 +244,9 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                     {row.partName}
                     <span className="text-gray-400 text-xs ml-1">({row.unit})</span>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{row.required}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{row.inStock}</td>
-                  <td className={`px-4 py-3 text-right font-semibold tabular-nums ${row.shortage > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                  <td className="px-4 py-3 text-center tabular-nums">{row.required}</td>
+                  <td className="px-4 py-3 text-center tabular-nums">{row.inStock}</td>
+                  <td className={`px-4 py-3 text-center font-semibold tabular-nums ${row.shortage > 0 ? 'text-red-700' : 'text-green-700'}`}>
                     {row.shortage > 0 ? `-${row.shortage}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-center overflow-hidden">

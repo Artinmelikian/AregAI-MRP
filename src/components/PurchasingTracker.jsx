@@ -56,7 +56,7 @@ function EditableQty({ value, onSave }) {
         onChange={e => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false) }}
-        className="w-20 border border-sky-400 rounded px-2 py-1 text-sm outline-none text-right"
+        className="w-20 border border-sky-400 rounded px-2 py-1 text-sm outline-none text-center"
       />
     )
   }
@@ -64,7 +64,7 @@ function EditableQty({ value, onSave }) {
   return (
     <span
       onClick={() => { setDraft(value ?? 0); setEditing(true) }}
-      className="cursor-pointer hover:bg-sky-50 rounded px-2 py-1 -mx-2 font-medium tabular-nums block text-right"
+      className="cursor-pointer hover:bg-sky-50 rounded px-2 py-1 -mx-2 font-medium tabular-nums block text-center"
     >
       {value || 0}
     </span>
@@ -232,12 +232,12 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                 {[
                   ['name', 'Part Name', 'text-left'],
                   ['description', 'Description', 'text-left'],
-                  ['stock_level', 'Stock', 'text-right'],
-                  ['reorder_threshold', 'Reorder At', 'text-right'],
-                  ['lead_time_days', 'Lead Time', 'text-right'],
+                  ['stock_level', 'Stock', 'text-center'],
+                  ['reorder_threshold', 'Reorder At', 'text-center'],
+                  ['lead_time_days', 'Lead Time', 'text-center'],
                   ['link', 'Model / Link', 'text-left'],
                   ['status', 'Purchasing Status', 'text-left'],
-                  ['qty_on_order', 'Qty Ordered', 'text-right'],
+                  ['qty_on_order', 'Qty Ordered', 'text-center'],
                 ].map(([key, label, align]) => (
                   <th key={key} className={`relative px-4 py-3 font-medium ${align}`}>
                     <span className="truncate block pr-2">{label}</span>
@@ -254,16 +254,16 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                   <tr key={part.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-2.5 font-medium overflow-hidden truncate">{part.name}</td>
                     <td className="px-4 py-2.5 text-gray-500 overflow-hidden truncate">{part.description || '—'}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{part.stock_level}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{part.reorder_threshold}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{part.lead_time_days}d</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums">{part.stock_level}</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums text-gray-500">{part.reorder_threshold}</td>
+                    <td className="px-4 py-2.5 text-center tabular-nums text-gray-500">{part.lead_time_days}d</td>
                     <td className="px-4 py-2.5 overflow-hidden">
                       <EditableLink value={part.link} onSave={v => onUpdate(part.id, { link: v })} />
                     </td>
                     <td className="px-4 py-2.5 overflow-hidden">
                       <StatusSelect value={getStatus(part)} onChange={v => onUpdate(part.id, { purchasing_status: v })} />
                     </td>
-                    <td className="px-4 py-2.5 overflow-hidden">
+                    <td className="px-4 py-2.5 text-center overflow-hidden">
                       <EditableQty value={part.qty_on_order} onSave={v => onUpdate(part.id, { qty_on_order: v })} />
                     </td>
                     <td className="px-4 py-2.5 text-center overflow-hidden">

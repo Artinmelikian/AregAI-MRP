@@ -150,7 +150,7 @@ function EditableCell({ value, type, onSave }) {
 function renderCell(col, part, onUpdate) {
   if (col.key === 'stock_level') {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         <StockCell stock={part.stock_level} threshold={part.reorder_threshold} />
         <EditableCell value={part.stock_level} type="number" onSave={v => onUpdate(part.id, { stock_level: v })} />
       </div>
@@ -242,11 +242,11 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
                   onDragOver={e => handleDragOver(e, col.key)}
                   onDrop={() => handleDrop(col.key)}
                   onDragLeave={() => setDragOver(null)}
-                  className={`relative px-4 py-3 text-left font-medium cursor-grab select-none transition-colors ${
-                    dragOver === col.key ? 'bg-sky-100 text-sky-700' : 'hover:bg-gray-100'
-                  }`}
+                  className={`relative px-4 py-3 font-medium cursor-grab select-none transition-colors ${
+                    col.type === 'number' ? 'text-center' : 'text-left'
+                  } ${dragOver === col.key ? 'bg-sky-100 text-sky-700' : 'hover:bg-gray-100'}`}
                 >
-                  <span className="flex items-center gap-1.5 overflow-hidden">
+                  <span className={`flex items-center gap-1.5 overflow-hidden ${col.type === 'number' ? 'justify-center' : ''}`}>
                     <span className="text-gray-300 shrink-0">⠿</span>
                     <span className="truncate">{col.label}</span>
                   </span>
@@ -294,7 +294,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
             {parts.map(part => (
               <tr key={part.id} className="hover:bg-gray-50 transition-colors">
                 {columns.map(col => (
-                  <td key={col.key} className="px-4 py-2.5 overflow-hidden">
+                  <td key={col.key} className={`px-4 py-2.5 overflow-hidden ${col.type === 'number' ? 'text-center' : ''}`}>
                     {renderCell(col, part, onUpdate)}
                   </td>
                 ))}
