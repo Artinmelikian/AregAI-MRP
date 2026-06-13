@@ -63,6 +63,30 @@ create table if not exists assembly_stages (
 alter table assembly_stages enable row level security;
 create policy "authenticated_all" on assembly_stages for all to authenticated using (true) with check (true);
 
+-- Saved production plans
+create table if not exists production_plans (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  target_date date not null,
+  batch jsonb not null,
+  feasible boolean not null default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table production_plans enable row level security;
+create policy "authenticated_all" on production_plans for all to authenticated using (true) with check (true);
+
+-- Purchasing tracker status per part
+alter table parts add column if not exists purchasing_status text not null default 'To be Sourced'
+  check (purchasing_status in (
+    'In-house Build', 'Local Store', 'To be Sourced', 'Negotiating w/Supplier',
+    'To be Ordered', 'Ordered', 'Shipped', 'Received'
+  ));
+
+-- Quantity currently on order for each part
+alter table parts add column if not exists qty_on_order integer not null default 0;
+
 -- ============================================================
 -- Seed Data
 -- ============================================================

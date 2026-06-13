@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react'
+import { useColumnWidths } from '../hooks/useColumnWidths'
+import ResizeHandle from './ResizeHandle'
 
 const ALL_COLUMNS = [
   { key: 'name', label: 'Part Name', type: 'text' },
@@ -9,6 +11,17 @@ const ALL_COLUMNS = [
   { key: 'link', label: 'Model / Link', type: 'url' },
 ]
 
+const DEFAULT_WIDTHS = {
+  name: 200,
+  description: 240,
+  stock_level: 110,
+  reorder_threshold: 120,
+  lead_time_days: 140,
+  link: 200,
+  actions: 90,
+}
+
+const WIDTHS_STORAGE_KEY = 'parts-column-widths'
 const STORAGE_KEY = 'parts-column-order'
 
 function loadColumnOrder() {
@@ -162,6 +175,8 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
   const [columnOrder, setColumnOrder] = useState(loadColumnOrder)
   const [dragOver, setDragOver] = useState(null)
   const dragKey = useRef(null)
+  const [widths, setWidth] = useColumnWidths(WIDTHS_STORAGE_KEY, DEFAULT_WIDTHS)
+  const [resizingCol, setResizingCol] = useState(null)
 
   const columns = columnOrder.map(k => ALL_COLUMNS.find(c => c.key === k)).filter(Boolean)
 
@@ -193,7 +208,12 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <div>
-          <h2 className="text-lg font-semibold">Parts & Inventory</h2>
+          <h2 className="text-lg font-semibold">
+            Parts & Inventory
+            <span className="ml-2 text-xs font-medium text-sky-700 bg-sky-50 rounded-full px-2 py-0.5 align-middle">
+              {parts.length} {parts.length === 1 ? 'part type' : 'part types'}
+            </span>
+          </h2>
           <p className="text-xs text-gray-400 mt-0.5">Drag column headers to reorder</p>
         </div>
         <button
@@ -205,25 +225,37 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
+          <colgroup>
+            {columns.map(col => (
+              <col key={col.key} style={{ width: widths[col.key] ?? DEFAULT_WIDTHS[col.key] }} />
+            ))}
+            <col style={{ width: widths.actions ?? DEFAULT_WIDTHS.actions }} />
+          </colgroup>
           <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
               {columns.map(col => (
                 <th
                   key={col.key}
-                  draggable
+                  draggable={!resizingCol}
                   onDragStart={() => handleDragStart(col.key)}
                   onDragOver={e => handleDragOver(e, col.key)}
                   onDrop={() => handleDrop(col.key)}
                   onDragLeave={() => setDragOver(null)}
-                  className={`px-4 py-3 text-left font-medium cursor-grab select-none transition-colors ${
+                  className={`relative px-4 py-3 text-left font-medium cursor-grab select-none transition-colors ${
                     dragOver === col.key ? 'bg-sky-100 text-sky-700' : 'hover:bg-gray-100'
                   }`}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-gray-300">⠿</span>
-                    {col.label}
+                  <span className="flex items-center gap-1.5 overflow-hidden">
+                    <span className="text-gray-300 shrink-0">⠿</span>
+                    <span className="truncate">{col.label}</span>
                   </span>
+                  <ResizeHandle
+                    width={widths[col.key] ?? DEFAULT_WIDTHS[col.key]}
+                    onResize={w => setWidth(col.key, w)}
+                    onStart={() => setResizingCol(col.key)}
+                    onEnd={() => setResizingCol(null)}
+                  />
                 </th>
               ))}
               <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -262,7 +294,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
             {parts.map(part => (
               <tr key={part.id} className="hover:bg-gray-50 transition-colors">
                 {columns.map(col => (
-                  <td key={col.key} className="px-4 py-2.5">
+                  <td key={col.key} className="px-4 py-2.5 overflow-hidden">
                     {renderCell(col, part, onUpdate)}
                   </td>
                 ))}

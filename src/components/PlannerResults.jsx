@@ -1,8 +1,88 @@
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
+import { useColumnWidths } from '../hooks/useColumnWidths'
+import ResizeHandle from './ResizeHandle'
 
-export default function PlannerResults({ results, onReset }) {
+const ASSEMBLY_WIDTHS = {
+  model: 140,
+  qty: 80,
+  mech: 130,
+  elec: 130,
+  total: 100,
+  partsNeededBy: 160,
+}
+
+const PARTS_WIDTHS = {
+  part: 220,
+  required: 100,
+  inStock: 100,
+  shortage: 100,
+  orderBy: 170,
+  leadTime: 110,
+}
+
+function SaveBar({ currentPlan, defaultName, onSave, onSaveAsNew, onEdit }) {
+  const [name, setName] = useState(currentPlan?.name || defaultName || '')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { setName(currentPlan?.name || defaultName || '') }, [currentPlan, defaultName])
+
+  const handleSave = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    await onSave(name.trim())
+    setSaving(false)
+  }
+
+  const handleSaveAsNew = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    await onSaveAsNew(name.trim())
+    setSaving(false)
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Plan name (e.g. June Production Run)"
+        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-sky-400"
+      />
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={onEdit}
+          className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          ✏️ Edit Inputs
+        </button>
+        {currentPlan && (
+          <button
+            onClick={handleSaveAsNew}
+            disabled={saving || !name.trim()}
+            className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 transition-colors"
+          >
+            Save as New
+          </button>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={saving || !name.trim()}
+          className="px-4 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-40 transition-colors"
+        >
+          {saving ? 'Saving…' : currentPlan ? 'Update Plan' : '💾 Save Plan'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function PlannerResults({ results, onReset, currentPlan, onSave, onSaveAsNew, onEdit, onSendToPurchasing }) {
   const { rows, feasible, targetDate, partsNeededBy, maxAssemblyDays, assemblyByModel } = results
   const hasAssemblyData = maxAssemblyDays > 0
+  const shortageCount = rows.filter(r => r.shortage > 0).length
+  const [assemblyWidths, setAssemblyWidth] = useColumnWidths('planner-assembly-column-widths', ASSEMBLY_WIDTHS)
+  const [partsWidths, setPartsWidth] = useColumnWidths('planner-parts-column-widths', PARTS_WIDTHS)
 
   return (
     <div className="space-y-4">
@@ -16,6 +96,7 @@ export default function PlannerResults({ results, onReset }) {
           </span>
           <p className="text-sm text-gray-500 mt-0.5">
             Target: {format(targetDate, 'MMMM d, yyyy')} · {rows.length} parts analyzed
+            {currentPlan && <span className="ml-2 text-sky-600 font-medium">· {currentPlan.name}</span>}
           </p>
         </div>
         <button
@@ -26,21 +107,45 @@ export default function PlannerResults({ results, onReset }) {
         </button>
       </div>
 
+      {/* Save bar */}
+      <SaveBar
+        currentPlan={currentPlan}
+        defaultName={`Plan – ${format(targetDate, 'MMM d, yyyy')}`}
+        onSave={onSave}
+        onSaveAsNew={onSaveAsNew}
+        onEdit={onEdit}
+      />
+
       {/* Assembly Timeline */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-6 py-3 border-b border-gray-100 bg-gray-50">
           <h3 className="text-sm font-semibold text-gray-700">🏗️ Assembly Timeline</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
+            <colgroup>
+              <col style={{ width: assemblyWidths.model }} />
+              <col style={{ width: assemblyWidths.qty }} />
+              <col style={{ width: assemblyWidths.mech }} />
+              <col style={{ width: assemblyWidths.elec }} />
+              <col style={{ width: assemblyWidths.total }} />
+              <col style={{ width: assemblyWidths.partsNeededBy }} />
+            </colgroup>
             <thead className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium">Model</th>
-                <th className="px-4 py-2.5 text-right font-medium">Qty</th>
-                <th className="px-4 py-2.5 text-right font-medium">⚙️ Mechanical</th>
-                <th className="px-4 py-2.5 text-right font-medium">⚡ Electrical</th>
-                <th className="px-4 py-2.5 text-right font-medium">Total</th>
-                <th className="px-4 py-2.5 text-center font-medium">Parts Needed By</th>
+                {[
+                  ['model', 'Model', 'text-left'],
+                  ['qty', 'Qty', 'text-right'],
+                  ['mech', '⚙️ Mechanical', 'text-right'],
+                  ['elec', '⚡ Electrical', 'text-right'],
+                  ['total', 'Total', 'text-right'],
+                  ['partsNeededBy', 'Parts Needed By', 'text-center'],
+                ].map(([key, label, align]) => (
+                  <th key={key} className={`relative px-4 py-2.5 font-medium ${align}`}>
+                    <span className="truncate block pr-2">{label}</span>
+                    <ResizeHandle width={assemblyWidths[key]} onResize={w => setAssemblyWidth(key, w)} />
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -48,7 +153,7 @@ export default function PlannerResults({ results, onReset }) {
                 const isBottleneck = totalDays === maxAssemblyDays && maxAssemblyDays > 0
                 return (
                   <tr key={modelName} className={isBottleneck ? 'bg-orange-50' : ''}>
-                    <td className="px-4 py-2.5 font-medium">
+                    <td className="px-4 py-2.5 font-medium overflow-hidden truncate">
                       {modelName}
                       {isBottleneck && maxAssemblyDays > 0 && (
                         <span className="ml-2 px-1.5 py-0.5 text-xs bg-orange-200 text-orange-800 rounded font-bold">BOTTLENECK</span>
@@ -58,7 +163,7 @@ export default function PlannerResults({ results, onReset }) {
                     <td className="px-4 py-2.5 text-right tabular-nums">{mechDays.toFixed(1)}d</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{elecDays.toFixed(1)}d</td>
                     <td className="px-4 py-2.5 text-right font-semibold tabular-nums">{totalDays.toFixed(1)}d</td>
-                    <td className="px-4 py-2.5 text-center text-gray-600">
+                    <td className="px-4 py-2.5 text-center text-gray-600 overflow-hidden truncate">
                       {format(partsNeededBy, 'MMM d, yyyy')}
                     </td>
                   </tr>
@@ -84,24 +189,49 @@ export default function PlannerResults({ results, onReset }) {
 
       {/* Parts requirements table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-700">🔩 Parts Requirements</h3>
-          {hasAssemblyData && (
-            <p className="text-xs text-gray-400 mt-0.5">
-              Order By Date = Parts Needed By ({format(partsNeededBy, 'MMM d')}) − Part Lead Time
-            </p>
-          )}
+        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700">🔩 Parts Requirements</h3>
+            {hasAssemblyData && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                Order By Date = Parts Needed By ({format(partsNeededBy, 'MMM d')}) − Part Lead Time
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onSendToPurchasing}
+            disabled={shortageCount === 0}
+            title={shortageCount > 0 ? `Set "Qty Ordered" = shortage for ${shortageCount} part(s) in Purchasing Tracker` : 'No shortages to send'}
+            className="px-3 py-1.5 text-sm font-medium bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          >
+            🛒 Send Shortages to Purchasing{shortageCount > 0 ? ` (${shortageCount})` : ''}
+          </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
+            <colgroup>
+              <col style={{ width: partsWidths.part }} />
+              <col style={{ width: partsWidths.required }} />
+              <col style={{ width: partsWidths.inStock }} />
+              <col style={{ width: partsWidths.shortage }} />
+              <col style={{ width: partsWidths.orderBy }} />
+              <col style={{ width: partsWidths.leadTime }} />
+            </colgroup>
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Part</th>
-                <th className="px-4 py-3 text-right font-medium">Required</th>
-                <th className="px-4 py-3 text-right font-medium">In Stock</th>
-                <th className="px-4 py-3 text-right font-medium">Shortage</th>
-                <th className="px-4 py-3 text-center font-medium">Order By Date</th>
-                <th className="px-4 py-3 text-center font-medium">Lead Time</th>
+                {[
+                  ['part', 'Part', 'text-left'],
+                  ['required', 'Required', 'text-right'],
+                  ['inStock', 'In Stock', 'text-right'],
+                  ['shortage', 'Shortage', 'text-right'],
+                  ['orderBy', 'Order By Date', 'text-center'],
+                  ['leadTime', 'Lead Time', 'text-center'],
+                ].map(([key, label, align]) => (
+                  <th key={key} className={`relative px-4 py-3 font-medium ${align}`}>
+                    <span className="truncate block pr-2">{label}</span>
+                    <ResizeHandle width={partsWidths[key]} onResize={w => setPartsWidth(key, w)} />
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -110,7 +240,7 @@ export default function PlannerResults({ results, onReset }) {
                   key={row.partId}
                   className={row.shortage > 0 ? 'bg-red-50' : 'bg-green-50'}
                 >
-                  <td className="px-4 py-3 font-medium">
+                  <td className="px-4 py-3 font-medium overflow-hidden truncate">
                     {row.partName}
                     <span className="text-gray-400 text-xs ml-1">({row.unit})</span>
                   </td>
@@ -119,7 +249,7 @@ export default function PlannerResults({ results, onReset }) {
                   <td className={`px-4 py-3 text-right font-semibold tabular-nums ${row.shortage > 0 ? 'text-red-700' : 'text-green-700'}`}>
                     {row.shortage > 0 ? `-${row.shortage}` : '—'}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center overflow-hidden">
                     <span className={`inline-flex items-center gap-1.5 ${row.isUrgent ? 'text-red-700' : 'text-gray-700'}`}>
                       {format(row.orderByDate, 'MMM d, yyyy')}
                       {row.isUrgent && (

@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 
-export default function PlannerForm({ models, onCalculate, calculating }) {
+export default function PlannerForm({ models, onCalculate, calculating, initialBatch, initialTargetDate }) {
   const today = format(new Date(), 'yyyy-MM-dd')
-  const [targetDate, setTargetDate] = useState('')
-  const [quantities, setQuantities] = useState({})
+  const [targetDate, setTargetDate] = useState(initialTargetDate || '')
+  const [quantities, setQuantities] = useState(() => {
+    if (!initialBatch) return {}
+    return Object.fromEntries(initialBatch.filter(b => b.qty > 0).map(b => [b.modelId, b.qty]))
+  })
 
   const setQty = (modelId, val) =>
     setQuantities(prev => ({ ...prev, [modelId]: Math.max(0, Number(val)) }))

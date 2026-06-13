@@ -1,5 +1,16 @@
 import { useState } from 'react'
 import { useBOM } from '../hooks/useBOM'
+import { useColumnWidths } from '../hooks/useColumnWidths'
+import ResizeHandle from './ResizeHandle'
+
+const DEFAULT_WIDTHS = {
+  part: 220,
+  unit: 90,
+  qty: 120,
+  leadtime: 110,
+  link: 200,
+  remove: 90,
+}
 
 function EditableQty({ value, onSave }) {
   const [editing, setEditing] = useState(false)
@@ -103,6 +114,7 @@ export default function BOMEditor({ model, allParts }) {
   const [selectedPartId, setSelectedPartId] = useState('')
   const [qty, setQty] = useState(1)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [widths, setWidth] = useColumnWidths('bom-column-widths', DEFAULT_WIDTHS)
 
   const existingPartIds = new Set(items.map(i => i.parts.id))
   const availableParts = allParts.filter(p => !existingPartIds.has(p.id))
@@ -161,30 +173,48 @@ export default function BOMEditor({ model, allParts }) {
       {loading ? (
         <div className="p-8 text-center text-gray-400">Loading…</div>
       ) : (
-        <table className="w-full text-sm">
+        <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
+          <colgroup>
+            <col style={{ width: widths.part }} />
+            <col style={{ width: widths.unit }} />
+            <col style={{ width: widths.qty }} />
+            <col style={{ width: widths.leadtime }} />
+            <col style={{ width: widths.link }} />
+            <col style={{ width: widths.remove }} />
+          </colgroup>
           <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
-              <th className="px-6 py-3 text-left font-medium">Part</th>
-              <th className="px-6 py-3 text-left font-medium">Unit</th>
-              <th className="px-6 py-3 text-left font-medium">Qty / Unit</th>
-              <th className="px-6 py-3 text-left font-medium">Lead Time</th>
-              <th className="px-6 py-3 text-left font-medium">Model / Link</th>
-              <th className="px-6 py-3 text-right font-medium">Remove</th>
+              {[
+                ['part', 'Part'],
+                ['unit', 'Unit'],
+                ['qty', 'Qty / Unit'],
+                ['leadtime', 'Lead Time'],
+                ['link', 'Model / Link'],
+              ].map(([key, label]) => (
+                <th key={key} className="relative px-6 py-3 text-left font-medium">
+                  <span className="truncate block pr-2">{label}</span>
+                  <ResizeHandle
+                    width={widths[key]}
+                    onResize={w => setWidth(key, w)}
+                  />
+                </th>
+              ))}
+              <th className="relative px-6 py-3 text-right font-medium">Remove</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {items.map(item => (
               <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-6 py-3 font-medium">{item.parts.name}</td>
-                <td className="px-6 py-3 text-gray-500">{item.parts.unit}</td>
-                <td className="px-6 py-3">
+                <td className="px-6 py-3 font-medium overflow-hidden truncate">{item.parts.name}</td>
+                <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.unit}</td>
+                <td className="px-6 py-3 overflow-hidden">
                   <EditableQty
                     value={item.quantity_per_unit}
                     onSave={v => updateItem(item.id, v)}
                   />
                 </td>
-                <td className="px-6 py-3 text-gray-500">{item.parts.lead_time_days}d</td>
-                <td className="px-6 py-3">
+                <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.lead_time_days}d</td>
+                <td className="px-6 py-3 overflow-hidden">
                   <EditableLink
                     value={item.link}
                     onSave={v => updateItem(item.id, { link: v })}

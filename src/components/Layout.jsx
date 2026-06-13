@@ -7,6 +7,7 @@ const navItems = [
   { to: '/parts', label: 'Parts & Inventory', icon: '🔩' },
   { to: '/models', label: 'Robot Models', icon: '🤖' },
   { to: '/planner', label: 'Production Planner', icon: '🏭' },
+  { to: '/purchasing', label: 'Purchasing Tracker', icon: '🛒' },
 ]
 
 export default function Layout({ children }) {

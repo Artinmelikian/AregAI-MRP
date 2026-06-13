@@ -90,6 +90,8 @@ export function useProduction() {
         rows,
         feasible,
         targetDate: target,
+        targetDateStr: targetDate,
+        batch: activeBatch,
         partsNeededBy,
         maxAssemblyDays,
         assemblyByModel,
