@@ -78,10 +78,13 @@ alter table production_plans enable row level security;
 create policy "authenticated_all" on production_plans for all to authenticated using (true) with check (true);
 
 -- Purchasing tracker status per part
-alter table parts add column if not exists purchasing_status text not null default 'To be Sourced'
+alter table parts add column if not exists purchasing_status text not null default 'To be Sourced';
+
+alter table parts drop constraint if exists parts_purchasing_status_check;
+alter table parts add constraint parts_purchasing_status_check
   check (purchasing_status in (
     'In-house Build', 'Local Store', 'To be Sourced', 'Negotiating w/Supplier',
-    'To be Ordered', 'Ordered', 'Shipped', 'Received'
+    'Test Sample Ordered', 'To be Ordered', 'Ordered', 'Shipped', 'Received'
   ));
 
 -- Quantity currently on order for each part
