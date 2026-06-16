@@ -149,10 +149,31 @@ function EditableLink({ value, onSave }) {
   )
 }
 
+function exportCSV(selected) {
+  const headers = ['Part Name', 'Description', 'Qty Ordered', 'Model / Link']
+  const rows = selected.map(p => [
+    p.name,
+    p.description || '',
+    p.qty_on_order || 0,
+    p.link || '',
+  ])
+  const csv = [headers, ...rows]
+    .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `purchase-order-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function PurchasingTracker({ parts, onUpdate }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [widths, setWidth] = useColumnWidths('purchasing-column-widths', DEFAULT_WIDTHS)
+  const [selected, setSelected] = useState(new Set())
 
   const getStatus = (part) => part.purchasing_status || 'To be Sourced'
 
@@ -166,6 +187,24 @@ export default function PurchasingTracker({ parts, onUpdate }) {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id))
+
+  const toggleOne = (id) => setSelected(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
+  const toggleAll = () => {
+    if (allFilteredSelected) {
+      setSelected(prev => { const next = new Set(prev); filtered.forEach(p => next.delete(p.id)); return next })
+    } else {
+      setSelected(prev => new Set([...prev, ...filtered.map(p => p.id)]))
+    }
+  }
+
+  const selectedParts = parts.filter(p => selected.has(p.id))
 
   const handleReceive = (part) => {
     const qty = Number(part.qty_on_order) || 0
@@ -203,22 +242,33 @@ export default function PurchasingTracker({ parts, onUpdate }) {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
           <div>
             <h2 className="text-lg font-semibold">Purchasing Tracker</h2>
             <p className="text-xs text-gray-400 mt-0.5">Update each part's procurement status as it progresses</p>
           </div>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search parts…"
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-56"
-          />
+          <div className="flex items-center gap-3">
+            {selectedParts.length > 0 && (
+              <button
+                onClick={() => exportCSV(selectedParts)}
+                className="px-3 py-1.5 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+              >
+                ↓ Export Selected ({selectedParts.length})
+              </button>
+            )}
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search parts…"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-56"
+            />
+          </div>
         </div>
 
         <div className="overflow-auto max-h-[65vh]">
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
+              <col style={{ width: 40 }} />
               <col style={{ width: widths.name }} />
               <col style={{ width: widths.description }} />
               <col style={{ width: widths.stock_level }} />
@@ -231,6 +281,15 @@ export default function PurchasingTracker({ parts, onUpdate }) {
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
+                <th className="px-3 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleAll}
+                    title="Select all visible"
+                    className="cursor-pointer"
+                  />
+                </th>
                 {[
                   ['name', 'Part Name', 'text-left'],
                   ['description', 'Description', 'text-left'],
@@ -253,7 +312,15 @@ export default function PurchasingTracker({ parts, onUpdate }) {
               {filtered.map(part => {
                 const onOrder = Number(part.qty_on_order) || 0
                 return (
-                  <tr key={part.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={part.id} className={`transition-colors ${selected.has(part.id) ? 'bg-sky-50' : 'hover:bg-gray-50'}`}>
+                    <td className="px-3 py-2.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(part.id)}
+                        onChange={() => toggleOne(part.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-2.5 font-medium overflow-hidden truncate">{part.name}</td>
                     <td className="px-4 py-2.5 text-gray-500 overflow-hidden truncate">{part.description || '—'}</td>
                     <td className="px-4 py-2.5 text-center tabular-nums">{part.stock_level}</td>
@@ -282,7 +349,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
               )}
             </tbody>
           </table>
