@@ -84,16 +84,29 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
   const shortageCount = rows.filter(r => r.shortage > 0).length
   const [assemblyWidths, setAssemblyWidth] = useColumnWidths('planner-assembly-column-widths', ASSEMBLY_WIDTHS)
   const [partsWidths, setPartsWidth] = useColumnWidths('planner-parts-column-widths', PARTS_WIDTHS)
-  const [sentIds, setSentIds] = useState(new Set())
+
+  const sentKey = `planner-sent-${results.targetDateStr}-${(results.batch || []).map(b => b.modelId + ':' + b.qty).join(',')}`
+
+  const [sentIds, setSentIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(sentKey) || '[]')) } catch { return new Set() }
+  })
+
+  const addSent = (ids) => {
+    setSentIds(prev => {
+      const next = new Set([...prev, ...ids])
+      localStorage.setItem(sentKey, JSON.stringify([...next]))
+      return next
+    })
+  }
 
   const handleSend = async (row) => {
     await onSendToPurchasing(row)
-    setSentIds(prev => new Set([...prev, row.partId]))
+    addSent([row.partId])
   }
 
   const handleSendAll = async () => {
     await onSendToPurchasing()
-    setSentIds(prev => new Set([...prev, ...rows.filter(r => r.shortage > 0).map(r => r.partId)]))
+    addSent(rows.filter(r => r.shortage > 0).map(r => r.partId))
   }
 
   return (
@@ -273,11 +286,12 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                   </td>
                   <td className="px-4 py-3 text-center text-gray-500">{row.leadTimeDays}d</td>
                   <td className="px-4 py-3 text-center">
-                    {sentIds.has(row.partId) ? (
-                      <span className="inline-block text-xs font-semibold rounded-full px-2.5 py-1 bg-green-100 text-green-700">
-                        ✓ Added to Tracker
-                      </span>
-                    ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      {sentIds.has(row.partId) && (
+                        <span className="text-xs font-semibold rounded-full px-2 py-0.5 bg-green-100 text-green-700 whitespace-nowrap">
+                          ✓ Added to Tracker
+                        </span>
+                      )}
                       <button
                         onClick={() => handleSend(row)}
                         disabled={row.shortage <= 0}
@@ -286,7 +300,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                       >
                         Send
                       </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
