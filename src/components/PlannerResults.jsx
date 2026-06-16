@@ -19,6 +19,7 @@ const PARTS_WIDTHS = {
   shortage: 100,
   orderBy: 170,
   leadTime: 110,
+  send: 90,
 }
 
 function SaveBar({ currentPlan, defaultName, onSave, onSaveAsNew, onEdit }) {
@@ -216,6 +217,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <col style={{ width: partsWidths.shortage }} />
               <col style={{ width: partsWidths.orderBy }} />
               <col style={{ width: partsWidths.leadTime }} />
+              <col style={{ width: partsWidths.send }} />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
@@ -232,6 +234,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                     <ResizeHandle width={partsWidths[key]} onResize={w => setPartsWidth(key, w)} />
                   </th>
                 ))}
+                <th className="px-4 py-3 font-medium text-center">Send</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -258,6 +261,16 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center text-gray-500">{row.leadTimeDays}d</td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => onSendToPurchasing(row)}
+                      disabled={row.shortage <= 0}
+                      title={row.shortage > 0 ? `Send shortage of ${row.shortage} to Purchasing` : 'No shortage'}
+                      className="px-2 py-1 text-xs font-medium bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                    >
+                      🛒
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

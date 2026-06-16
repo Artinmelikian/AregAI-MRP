@@ -69,8 +69,8 @@ export default function Planner() {
     if (currentPlan?.id === id) setCurrentPlan(prev => ({ ...prev, name }))
   }
 
-  const handleSendToPurchasing = async () => {
-    const shortages = results.rows.filter(r => r.shortage > 0)
+  const handleSendToPurchasing = async (singleRow) => {
+    const shortages = singleRow ? [singleRow] : results.rows.filter(r => r.shortage > 0)
     if (!shortages.length) return
     await Promise.all(shortages.map(r =>
       updatePart(r.partId, { qty_on_order: r.shortage, purchasing_status: 'To be Ordered' })
