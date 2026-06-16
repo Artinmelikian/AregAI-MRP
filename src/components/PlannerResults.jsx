@@ -268,7 +268,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                       title={row.shortage > 0 ? `Send shortage of ${row.shortage} to Purchasing` : 'No shortage'}
                       className="px-2 py-1 text-xs font-medium bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                     >
-                      🛒
+                      Send
                     </button>
                   </td>
                 </tr>
