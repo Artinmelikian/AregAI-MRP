@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
+import { STATUS_OPTIONS } from './PurchasingTracker'
+
+const STATUS_COLORS = {
+  'In-house Build': 'bg-purple-100 text-purple-700',
+  'Local Store': 'bg-teal-100 text-teal-700',
+  'To be Sourced': 'bg-gray-100 text-gray-600',
+  'Negotiating w/Supplier': 'bg-yellow-100 text-yellow-700',
+  'Test Sample Ordered': 'bg-pink-100 text-pink-700',
+  'To be Ordered': 'bg-orange-100 text-orange-700',
+  'Ordered': 'bg-blue-100 text-blue-700',
+  'Shipped': 'bg-indigo-100 text-indigo-700',
+  'Received': 'bg-green-100 text-green-700',
+}
 
 const ASSEMBLY_WIDTHS = {
   model: 140,
@@ -19,6 +32,7 @@ const PARTS_WIDTHS = {
   shortage: 100,
   orderBy: 170,
   leadTime: 110,
+  purchasingStatus: 170,
   send: 90,
 }
 
@@ -217,6 +231,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <col style={{ width: partsWidths.shortage }} />
               <col style={{ width: partsWidths.orderBy }} />
               <col style={{ width: partsWidths.leadTime }} />
+              <col style={{ width: partsWidths.purchasingStatus }} />
               <col style={{ width: partsWidths.send }} />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
@@ -228,6 +243,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                   ['shortage', 'Shortage', 'text-center'],
                   ['orderBy', 'Order By Date', 'text-center'],
                   ['leadTime', 'Lead Time', 'text-center'],
+                  ['purchasingStatus', 'Purchasing Status', 'text-center'],
                 ].map(([key, label, align]) => (
                   <th key={key} className={`relative px-4 py-3 font-medium ${align}`}>
                     <span className="truncate block pr-2">{label}</span>
@@ -261,6 +277,11 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center text-gray-500">{row.leadTimeDays}d</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-block text-xs font-semibold rounded-full px-2.5 py-1 ${STATUS_COLORS[row.purchasingStatus] || 'bg-gray-100 text-gray-600'}`}>
+                      {row.purchasingStatus}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => onSendToPurchasing(row)}

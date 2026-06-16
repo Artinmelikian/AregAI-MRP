@@ -21,7 +21,7 @@ export function useProduction() {
       const [bomResult, assemblyResult] = await Promise.all([
         supabase
           .from('bom_items')
-          .select('robot_model_id, quantity_per_unit, parts(id, name, unit, stock_level, lead_time_days, reorder_threshold)')
+          .select('robot_model_id, quantity_per_unit, parts(id, name, unit, stock_level, lead_time_days, reorder_threshold, purchasing_status, qty_on_order)')
           .in('robot_model_id', modelIds),
         supabase
           .from('assembly_stages')
@@ -81,6 +81,8 @@ export function useProduction() {
           leadTimeDays: part.lead_time_days,
           orderByDate,
           isUrgent,
+          purchasingStatus: part.purchasing_status || 'To be Sourced',
+          qtyOnOrder: part.qty_on_order || 0,
         }
       }).sort((a, b) => a.partName.localeCompare(b.partName))
 
