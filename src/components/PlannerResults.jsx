@@ -2,19 +2,6 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
-import { STATUS_OPTIONS } from './PurchasingTracker'
-
-const STATUS_COLORS = {
-  'In-house Build': 'bg-purple-100 text-purple-700',
-  'Local Store': 'bg-teal-100 text-teal-700',
-  'To be Sourced': 'bg-gray-100 text-gray-600',
-  'Negotiating w/Supplier': 'bg-yellow-100 text-yellow-700',
-  'Test Sample Ordered': 'bg-pink-100 text-pink-700',
-  'To be Ordered': 'bg-orange-100 text-orange-700',
-  'Ordered': 'bg-blue-100 text-blue-700',
-  'Shipped': 'bg-indigo-100 text-indigo-700',
-  'Received': 'bg-green-100 text-green-700',
-}
 
 const ASSEMBLY_WIDTHS = {
   model: 140,
@@ -32,8 +19,7 @@ const PARTS_WIDTHS = {
   shortage: 100,
   orderBy: 170,
   leadTime: 110,
-  purchasingStatus: 170,
-  send: 90,
+  send: 140,
 }
 
 function SaveBar({ currentPlan, defaultName, onSave, onSaveAsNew, onEdit }) {
@@ -98,6 +84,17 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
   const shortageCount = rows.filter(r => r.shortage > 0).length
   const [assemblyWidths, setAssemblyWidth] = useColumnWidths('planner-assembly-column-widths', ASSEMBLY_WIDTHS)
   const [partsWidths, setPartsWidth] = useColumnWidths('planner-parts-column-widths', PARTS_WIDTHS)
+  const [sentIds, setSentIds] = useState(new Set())
+
+  const handleSend = async (row) => {
+    await onSendToPurchasing(row)
+    setSentIds(prev => new Set([...prev, row.partId]))
+  }
+
+  const handleSendAll = async () => {
+    await onSendToPurchasing()
+    setSentIds(prev => new Set([...prev, ...rows.filter(r => r.shortage > 0).map(r => r.partId)]))
+  }
 
   return (
     <div className="space-y-4">
@@ -214,7 +211,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
             )}
           </div>
           <button
-            onClick={onSendToPurchasing}
+            onClick={handleSendAll}
             disabled={shortageCount === 0}
             title={shortageCount > 0 ? `Set "Qty Ordered" = shortage for ${shortageCount} part(s) in Purchasing Tracker` : 'No shortages to send'}
             className="px-3 py-1.5 text-sm font-medium bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
@@ -231,7 +228,6 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <col style={{ width: partsWidths.shortage }} />
               <col style={{ width: partsWidths.orderBy }} />
               <col style={{ width: partsWidths.leadTime }} />
-              <col style={{ width: partsWidths.purchasingStatus }} />
               <col style={{ width: partsWidths.send }} />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
@@ -243,14 +239,13 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                   ['shortage', 'Shortage', 'text-center'],
                   ['orderBy', 'Order By Date', 'text-center'],
                   ['leadTime', 'Lead Time', 'text-center'],
-                  ['purchasingStatus', 'Purchasing Status', 'text-center'],
                 ].map(([key, label, align]) => (
                   <th key={key} className={`relative px-4 py-3 font-medium ${align}`}>
                     <span className="truncate block pr-2">{label}</span>
                     <ResizeHandle width={partsWidths[key]} onResize={w => setPartsWidth(key, w)} />
                   </th>
                 ))}
-                <th className="px-4 py-3 font-medium text-center">Send</th>
+                <th className="px-4 py-3 font-medium text-center">Purchasing</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -278,19 +273,20 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                   </td>
                   <td className="px-4 py-3 text-center text-gray-500">{row.leadTimeDays}d</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`inline-block text-xs font-semibold rounded-full px-2.5 py-1 ${STATUS_COLORS[row.purchasingStatus] || 'bg-gray-100 text-gray-600'}`}>
-                      {row.purchasingStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => onSendToPurchasing(row)}
-                      disabled={row.shortage <= 0}
-                      title={row.shortage > 0 ? `Send shortage of ${row.shortage} to Purchasing` : 'No shortage'}
-                      className="px-2 py-1 text-xs font-medium bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Send
-                    </button>
+                    {sentIds.has(row.partId) ? (
+                      <span className="inline-block text-xs font-semibold rounded-full px-2.5 py-1 bg-green-100 text-green-700">
+                        ✓ Added to Tracker
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleSend(row)}
+                        disabled={row.shortage <= 0}
+                        title={row.shortage > 0 ? `Send shortage of ${row.shortage} to Purchasing Tracker` : 'No shortage'}
+                        className="px-2.5 py-1 text-xs font-medium bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Send
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
