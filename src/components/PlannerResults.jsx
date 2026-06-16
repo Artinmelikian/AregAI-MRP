@@ -121,7 +121,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
         <div className="px-6 py-3 border-b border-gray-100 bg-gray-50">
           <h3 className="text-sm font-semibold text-gray-700">🏗️ Assembly Timeline</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[50vh]">
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
               <col style={{ width: assemblyWidths.model }} />
@@ -131,7 +131,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <col style={{ width: assemblyWidths.total }} />
               <col style={{ width: assemblyWidths.partsNeededBy }} />
             </colgroup>
-            <thead className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
+            <thead className="sticky top-0 z-10 bg-white text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
                 {[
                   ['model', 'Model', 'text-left'],
@@ -207,7 +207,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
             🛒 Send Shortages to Purchasing{shortageCount > 0 ? ` (${shortageCount})` : ''}
           </button>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[60vh]">
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
               <col style={{ width: partsWidths.part }} />
@@ -217,7 +217,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <col style={{ width: partsWidths.orderBy }} />
               <col style={{ width: partsWidths.leadTime }} />
             </colgroup>
-            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
+            <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
                 {[
                   ['part', 'Part', 'text-left'],

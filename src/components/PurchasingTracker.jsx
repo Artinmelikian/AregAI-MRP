@@ -216,7 +216,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
           />
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[65vh]">
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
               <col style={{ width: widths.name }} />
@@ -229,7 +229,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
               <col style={{ width: widths.qty_on_order }} />
               <col style={{ width: widths.actions }} />
             </colgroup>
-            <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+            <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
                 {[
                   ['name', 'Part Name', 'text-left'],

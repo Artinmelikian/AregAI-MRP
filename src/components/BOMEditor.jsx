@@ -173,6 +173,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
       {loading ? (
         <div className="p-8 text-center text-gray-400">Loading…</div>
       ) : (
+        <div className="overflow-auto max-h-[65vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
           <colgroup>
             <col style={{ width: widths.part }} />
@@ -182,7 +183,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
             <col style={{ width: widths.link }} />
             <col style={{ width: widths.remove }} />
           </colgroup>
-          <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+          <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
               {[
                 ['part', 'Part', 'text-left'],
@@ -237,6 +238,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
             )}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

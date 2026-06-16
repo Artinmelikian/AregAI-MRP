@@ -224,7 +224,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[65vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
           <colgroup>
             {columns.map(col => (
@@ -232,7 +232,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
             ))}
             <col style={{ width: widths.actions ?? DEFAULT_WIDTHS.actions }} />
           </colgroup>
-          <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+          <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
               {columns.map(col => (
                 <th
