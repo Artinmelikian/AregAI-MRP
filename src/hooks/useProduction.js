@@ -104,5 +104,12 @@ export function useProduction() {
     setCalculating(false)
   }
 
-  return { results, calculating, calculate, reset: () => setResults(null) }
+  const patchRowStatus = (partIds, purchasingStatus) => {
+    setResults(prev => prev ? {
+      ...prev,
+      rows: prev.rows.map(r => partIds.includes(r.partId) ? { ...r, purchasingStatus } : r),
+    } : prev)
+  }
+
+  return { results, calculating, calculate, reset: () => setResults(null), patchRowStatus }
 }

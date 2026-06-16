@@ -10,7 +10,7 @@ import SavedPlansPanel from '../components/SavedPlansPanel'
 
 export default function Planner() {
   const { models, loading } = useRobotModels()
-  const { results, calculating, calculate, reset } = useProduction()
+  const { results, calculating, calculate, reset, patchRowStatus } = useProduction()
   const { plans, loading: plansLoading, savePlan, updatePlan, deletePlan } = useProductionPlans()
   const { updatePart } = useParts()
   const [currentPlan, setCurrentPlan] = useState(null)
@@ -75,6 +75,7 @@ export default function Planner() {
     await Promise.all(shortages.map(r =>
       updatePart(r.partId, { qty_on_order: r.shortage, purchasing_status: 'To be Ordered' })
     ))
+    patchRowStatus(shortages.map(r => r.partId), 'To be Ordered')
     toast.success(`Sent ${shortages.length} part${shortages.length === 1 ? '' : 's'} to Purchasing Tracker`)
   }
 
