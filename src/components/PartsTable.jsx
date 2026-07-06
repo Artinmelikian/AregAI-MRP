@@ -231,6 +231,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
               <col key={col.key} style={{ width: widths[col.key] ?? DEFAULT_WIDTHS[col.key] }} />
             ))}
             <col style={{ width: widths.actions ?? DEFAULT_WIDTHS.actions }} />
+            <col />
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
@@ -259,6 +260,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
                 </th>
               ))}
               <th className="px-4 py-3 text-right font-medium">Actions</th>
+              <th />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -289,6 +291,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
                   <button onClick={handleAdd} className="text-green-600 hover:text-green-800 font-medium">Save</button>
                   <button onClick={() => setAdding(false)} className="text-gray-400 hover:text-gray-600">Cancel</button>
                 </td>
+                <td />
               </tr>
             )}
             {parts.map(part => (
@@ -308,10 +311,11 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
                     <button onClick={() => setDeleteConfirm(part.id)} className="text-gray-300 hover:text-red-500 transition-colors">✕</button>
                   )}
                 </td>
+                <td />
               </tr>
             ))}
             {!adding && parts.length === 0 && (
-              <tr><td colSpan={columns.length + 1} className="px-4 py-8 text-center text-gray-400">No parts yet. Click &quot;Add Part&quot; to get started.</td></tr>
+              <tr><td colSpan={columns.length + 2} className="px-4 py-8 text-center text-gray-400">No parts yet. Click &quot;Add Part&quot; to get started.</td></tr>
             )}
           </tbody>
         </table>

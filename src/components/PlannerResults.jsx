@@ -155,6 +155,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <col style={{ width: assemblyWidths.elec }} />
               <col style={{ width: assemblyWidths.total }} />
               <col style={{ width: assemblyWidths.partsNeededBy }} />
+              <col />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
@@ -171,6 +172,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                     <ResizeHandle width={assemblyWidths[key]} onResize={w => setAssemblyWidth(key, w)} />
                   </th>
                 ))}
+                <th />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -191,6 +193,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                     <td className="px-4 py-2.5 text-center text-gray-600 overflow-hidden truncate">
                       {format(partsNeededBy, 'MMM d, yyyy')}
                     </td>
+                    <td />
                   </tr>
                 )
               })}
@@ -206,6 +209,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                 <td className="px-4 py-2.5 text-center font-semibold text-sky-700">
                   {format(partsNeededBy, 'MMM d, yyyy')}
                 </td>
+                <td />
               </tr>
             </tfoot>
           </table>
@@ -242,6 +246,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               <col style={{ width: partsWidths.orderBy }} />
               <col style={{ width: partsWidths.leadTime }} />
               <col style={{ width: partsWidths.send }} />
+              <col />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
@@ -259,6 +264,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                   </th>
                 ))}
                 <th className="px-4 py-3 font-medium text-center">Purchasing</th>
+                <th />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -302,6 +308,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
                       </button>
                     </div>
                   </td>
+                  <td />
                 </tr>
               ))}
             </tbody>

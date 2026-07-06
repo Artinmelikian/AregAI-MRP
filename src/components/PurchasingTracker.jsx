@@ -304,7 +304,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
         </div>
 
         <div className="overflow-auto max-h-[65vh]">
-          <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
+          <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
             <colgroup>
               <col style={{ width: 40 }} />
               <col style={{ width: widths.name }} />
@@ -317,6 +317,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
               <col style={{ width: widths.qty_on_order }} />
               <col style={{ width: widths.notes }} />
               <col style={{ width: widths.actions }} />
+              <col />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
@@ -346,6 +347,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                   </th>
                 ))}
                 <th className="relative px-4 py-3 font-medium text-center">Receive</th>
+                <th />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -388,11 +390,12 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                         ✓ Receive
                       </button>
                     </td>
+                    <td />
                   </tr>
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
+                <tr><td colSpan={12} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
               )}
             </tbody>
           </table>

@@ -182,6 +182,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
             <col style={{ width: widths.leadtime }} />
             <col style={{ width: widths.link }} />
             <col style={{ width: widths.remove }} />
+            <col />
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
@@ -201,6 +202,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
                 </th>
               ))}
               <th className="relative px-6 py-3 text-right font-medium">Remove</th>
+              <th />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -231,10 +233,11 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
                     <button onClick={() => setDeleteConfirm(item.id)} className="text-gray-300 hover:text-red-500 transition-colors">✕</button>
                   )}
                 </td>
+                <td />
               </tr>
             ))}
             {items.length === 0 && (
-              <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">No parts in BOM yet.</td></tr>
+              <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">No parts in BOM yet.</td></tr>
             )}
           </tbody>
         </table>
