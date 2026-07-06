@@ -27,16 +27,16 @@ const STATUS_COLORS = {
 }
 
 const DEFAULT_WIDTHS = {
-  name: 200,
-  description: 220,
-  stock_level: 90,
-  reorder_threshold: 110,
-  lead_time_days: 110,
-  link: 180,
-  status: 210,
-  qty_on_order: 120,
-  notes: 220,
-  actions: 100,
+  name: 130,
+  description: 110,
+  stock_level: 62,
+  reorder_threshold: 78,
+  lead_time_days: 78,
+  link: 110,
+  status: 158,
+  qty_on_order: 84,
+  notes: 120,
+  actions: 84,
 }
 
 function EditableQty({ value, onSave }) {
@@ -210,7 +210,7 @@ function exportCSV(selected) {
 export default function PurchasingTracker({ parts, onUpdate }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [widths, setWidth] = useColumnWidths('purchasing-column-widths', DEFAULT_WIDTHS)
+  const [widths, setWidth] = useColumnWidths('purchasing-column-widths-v2', DEFAULT_WIDTHS)
   const [selected, setSelected] = useState(new Set())
 
   const getStatus = (part) => part.purchasing_status || 'To be Sourced'
