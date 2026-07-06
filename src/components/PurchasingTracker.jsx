@@ -35,6 +35,7 @@ const DEFAULT_WIDTHS = {
   link: 180,
   status: 210,
   qty_on_order: 120,
+  notes: 220,
   actions: 100,
 }
 
@@ -149,13 +150,50 @@ function EditableLink({ value, onSave }) {
   )
 }
 
+function EditableNotes({ value, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ?? '')
+
+  const commit = () => {
+    setEditing(false)
+    const trimmed = draft.trim()
+    if (trimmed !== (value ?? '').trim()) onSave(trimmed || null)
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false) }}
+        placeholder="Add note…"
+        className="w-full border border-sky-400 rounded px-2 py-1 text-sm outline-none"
+      />
+    )
+  }
+
+  return (
+    <span
+      onClick={() => { setDraft(value ?? ''); setEditing(true) }}
+      className={`block cursor-pointer rounded px-2 py-1 -mx-2 text-sm truncate ${value ? 'text-gray-700 hover:bg-sky-50' : 'text-gray-300 hover:text-sky-500'}`}
+      title={value || undefined}
+    >
+      {value || '+ Add note'}
+    </span>
+  )
+}
+
 function exportCSV(selected) {
-  const headers = ['Part Name', 'Description', 'Qty Ordered', 'Model / Link']
+  const headers = ['Part Name', 'Description', 'Qty Ordered', 'Model / Link', 'Notes']
   const rows = selected.map(p => [
     p.name,
     p.description || '',
     p.qty_on_order || 0,
     p.link || '',
+    p.notes || '',
   ])
   const csv = [headers, ...rows]
     .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
@@ -277,6 +315,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
               <col style={{ width: widths.link }} />
               <col style={{ width: widths.status }} />
               <col style={{ width: widths.qty_on_order }} />
+              <col style={{ width: widths.notes }} />
               <col style={{ width: widths.actions }} />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
@@ -299,6 +338,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                   ['link', 'Model / Link', 'text-left'],
                   ['status', 'Purchasing Status', 'text-left'],
                   ['qty_on_order', 'Qty Ordered', 'text-center'],
+                  ['notes', 'Notes', 'text-left'],
                 ].map(([key, label, align]) => (
                   <th key={key} className={`relative px-4 py-3 font-medium ${align}`}>
                     <span className="truncate block pr-2">{label}</span>
@@ -335,6 +375,9 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                     <td className="px-4 py-2.5 text-center overflow-hidden">
                       <EditableQty value={part.qty_on_order} onSave={v => onUpdate(part.id, { qty_on_order: v })} />
                     </td>
+                    <td className="px-4 py-2.5 overflow-hidden">
+                      <EditableNotes value={part.notes} onSave={v => onUpdate(part.id, { notes: v })} />
+                    </td>
                     <td className="px-4 py-2.5 text-center overflow-hidden">
                       <button
                         onClick={() => handleReceive(part)}
@@ -349,7 +392,7 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
               )}
             </tbody>
           </table>
