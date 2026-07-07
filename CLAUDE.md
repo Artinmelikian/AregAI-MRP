@@ -20,7 +20,7 @@ Copy `.env.local.example` → `.env.local`:
 ## Database
 Run `supabase/schema.sql` in Supabase SQL Editor to create all tables. Tables:
 - `robot_models` — robot model definitions (SOBOT, MOWBOT, CBOT + any added via UI)
-- `parts` — inventory: stock_level, lead_time_days, reorder_threshold, unit, link, plus purchasing fields `purchasing_status` (one of 8 stages, default 'To be Sourced') and `qty_on_order` (default 0)
+- `parts` — inventory: stock_level, lead_time_days, reorder_threshold, unit, link, description, notes (text), plus purchasing fields `purchasing_status` (one of 8 stages, default 'To be Sourced') and `qty_on_order` (default 0). Unique constraint is `(name, description)` — same name with different description is a distinct part. **Do not rely on a `UNIQUE(name)` constraint; it was dropped.**
 - `bom_items` — many-to-many robot↔parts with quantity_per_unit and link
 - `assembly_stages` — per-model assembly breakdown: category ('mechanical'|'electrical'), duration_days, order_index
 - `production_plans` — saved planner inputs: name, target_date, batch (jsonb array of `{modelId, qty}`), feasible (snapshot at save time)
@@ -60,13 +60,19 @@ feasible         = all shortages === 0
 
 **Resizable columns** — `useColumnWidths` + `ResizeHandle` give every data table (PartsTable, BOMEditor, both PlannerResults tables, PurchasingTracker) drag-to-resize `<th>` columns via `<colgroup>` + `tableLayout: fixed`, persisted in `localStorage` under per-table keys (`parts-column-widths`, `bom-column-widths`, `planner-assembly-column-widths`, `planner-parts-column-widths`, `purchasing-column-widths`). In `PartsTable`, a `resizingCol` state guards `draggable={!resizingCol}` on `<th>` so resize and drag-reorder don't conflict.
 
-**Bulk import** — `BulkImportPanel` parses tab-separated clipboard data from Google Sheets, maps columns, previews add/update actions, then calls `onAdd`/`onUpdate` per row.
+**Search** — `PartsTable` and `BOMEditor` have local search inputs. Matching uses `normalize(s) = s.toLowerCase().replace(/\s+/g, '')` (strips ALL whitespace) so queries like `"DC-DC 48 > 12"` match `"DC-DC 48>12"`. Models list in `Models.jsx` has a separate model-name search.
+
+**Bulk import** — `BulkImportPanel` (Parts & Inventory) parses tab-separated clipboard data from Google Sheets, maps columns, previews add/update actions, then calls `onAdd`/`onUpdate` per row. Duplicate detection uses a composite key `(name, description)` — same-name/different-description rows are treated as distinct parts. Within-paste duplicates prompt confirmation before import; existing-DB matches are flagged as "Update".
+
+**BOM bulk paste** — `BOMEditor` has a collapsible "📋 Paste from Google Sheets" panel that validates each pasted row against `allParts` inventory (passed as prop, no extra DB call). Rows must match an existing inventory part (by normalized name); unmatched rows are shown as `not_found` and blocked from import.
+
+**BOM multi-select** — `BOMEditor` has per-row checkboxes + select-all for bulk deletion. `bulkDeleteConfirm` state gates an inline confirmation before the Supabase deletes fire.
 
 **Assembly auto-seed** — `useAssemblyStages` inserts the 8 default stages via upsert with `onConflict: 'robot_model_id,category,order_index'` to prevent React StrictMode double-invocation duplicates. The unique constraint `assembly_stages_unique` must exist in the DB.
 
 **Saved production plans** — `Planner.jsx` orchestrates `useProductionPlans` + `useProduction`. Saving stores raw inputs (`batch`, `target_date`) plus a `feasible` snapshot; opening a saved plan re-runs `calculate()` against current stock so shortages always reflect live inventory. `SavedPlansPanel` lists plans with inline rename, Open, and delete.
 
-**Purchasing tracker** (`PurchasingTracker.jsx`, page `/purchasing`) — global, per-part procurement status tracker covering all parts, not just current shortages (parts can be ordered for general inventory too). `STATUS_OPTIONS` defines the 8-stage workflow (In-house Build → Local Store → To be Sourced → Negotiating w/Supplier → To be Ordered → Ordered → Shipped → Received), each with a color in `STATUS_COLORS`. Status is set manually via `StatusSelect`; `qty_on_order` is manually editable via `EditableQty`. The "Receive" button (`handleReceive`) is enabled only when `qty_on_order > 0`; it adds `qty_on_order` to `stock_level` (additive), resets `qty_on_order` to 0, and sets status to 'Received'.
+**Purchasing tracker** (`PurchasingTracker.jsx`, page `/purchasing`) — global, per-part procurement status tracker covering all parts, not just current shortages (parts can be ordered for general inventory too). `STATUS_OPTIONS` defines the 8-stage workflow (In-house Build → Local Store → To be Sourced → Negotiating w/Supplier → To be Ordered → Ordered → Shipped → Received), each with a color in `STATUS_COLORS`. Status is set manually via `StatusSelect`; `qty_on_order` is manually editable via `EditableQty`; `notes` is an editable free-text field via `EditableNotes`. The "Receive" button (`handleReceive`) is enabled only when `qty_on_order > 0`; it adds `qty_on_order` to `stock_level` (additive), resets `qty_on_order` to 0, and sets status to 'Received'. Supports per-row checkboxes + select-all for multi-select, plus CSV export of selected rows. Column widths use storage key `purchasing-column-widths-v2` (bumped from v1 to bust cached widths).
 
 **Send Shortages to Purchasing** — on `PlannerResults`, a button (enabled when any row has `shortage > 0`) calls `Planner.jsx`'s `handleSendToPurchasing`, which sets `qty_on_order = shortage` and `purchasing_status = 'To be Ordered'` for each shortfall part via `updatePart`. This is a pre-fill convenience — `qty_on_order` remains manually editable afterward, and re-clicking overwrites (not adds to) existing values.
 
