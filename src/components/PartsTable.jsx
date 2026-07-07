@@ -205,10 +205,11 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
   }
 
   const [search, setSearch] = useState('')
+  const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
   const filteredParts = search.trim()
     ? parts.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        (p.description || '').toLowerCase().includes(search.toLowerCase())
+        normalize(p.name).includes(normalize(search)) ||
+        normalize(p.description).includes(normalize(search))
       )
     : parts
 
