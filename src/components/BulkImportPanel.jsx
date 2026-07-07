@@ -23,9 +23,9 @@ function normalizeStr(s) {
   return (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
-// Composite key: name + description together determine uniqueness
-function compositeKey(name, description) {
-  return normalizeStr(name) + '||' + normalizeStr(description)
+// The DB enforces unique part names, so name alone is the key
+function compositeKey(name) {
+  return normalizeStr(name)
 }
 
 export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
@@ -53,16 +53,15 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     }, 0)
   }
 
-  // Compute within-paste duplicates: rows with identical name+description
+  // Compute within-paste duplicates: rows with identical name (DB enforces unique names)
   const getDupeKeys = (rows, map) => {
-    const nameIdx = map.indexOf('name')
-    const descIdx = map.indexOf('description')
-    if (nameIdx < 0) return new Set()
+    const nIdx = map.indexOf('name')
+    if (nIdx < 0) return new Set()
     const seen = new Set()
     const dupes = new Set()
     for (const row of rows) {
-      const key = compositeKey(row[nameIdx], descIdx >= 0 ? row[descIdx] : '')
-      if (!normalizeStr(row[nameIdx])) continue
+      const key = compositeKey(row[nIdx])
+      if (!key) continue
       if (seen.has(key)) dupes.add(key)
       seen.add(key)
     }
@@ -75,13 +74,13 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
   // Rows that already exist in DB (matched on name + description)
   const existingByComposite = Object.fromEntries(
-    parts.map(p => [compositeKey(p.name, p.description), p])
+    parts.map(p => [compositeKey(p.name), p])
   )
   const existingMatchedNames = parsed
     ? [...new Set(
         parsed
           .filter(row => {
-            const key = compositeKey(row[nameIdx] ?? '', descIdx >= 0 ? row[descIdx] : '')
+            const key = compositeKey(row[nameIdx] ?? '')
             return normalizeStr(row[nameIdx] ?? '') && existingByComposite[key]
           })
           .map(row => (row[nameIdx] ?? '').trim())
@@ -100,7 +99,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     // Deduplicate within paste: last occurrence of each name+description wins
     const seen = new Set()
     const deduped = [...parsed].reverse().filter(row => {
-      const key = compositeKey(row[niIdx] ?? '', diIdx >= 0 ? row[diIdx] : '')
+      const key = compositeKey(row[niIdx] ?? '')
       if (!normalizeStr(row[niIdx] ?? '') || seen.has(key)) return false
       seen.add(key)
       return true
@@ -122,7 +121,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
       if (!record.name) continue
 
-      const existing = existingByComposite[compositeKey(record.name, record.description ?? '')]
+      const existing = existingByComposite[compositeKey(record.name)]
       if (existing) {
         const updates = { ...record }
         delete updates.name
@@ -291,7 +290,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                 <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm">
                   <span className="text-red-500 text-base leading-none mt-0.5">⚠</span>
                   <div>
-                    <p className="font-semibold text-red-800">{dupeKeys.size} duplicate row{dupeKeys.size > 1 ? 's' : ''} detected (same name + description)</p>
+                    <p className="font-semibold text-red-800">{dupeKeys.size} duplicate part name{dupeKeys.size > 1 ? 's' : ''} detected in your paste</p>
                     <p className="text-red-600 mt-0.5">
                       Duplicates are highlighted in red. If you continue, only the <strong>last</strong> occurrence will be imported — earlier ones will be skipped.
                     </p>
@@ -303,7 +302,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                 <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
                   <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
                   <div>
-                    <p className="font-semibold text-amber-800">{existingMatchedNames.length} part{existingMatchedNames.length > 1 ? 's' : ''} already exist in your inventory (matched on name + description)</p>
+                    <p className="font-semibold text-amber-800">{existingMatchedNames.length} part{existingMatchedNames.length > 1 ? 's' : ''} already exist in your inventory</p>
                     <p className="text-amber-700 mt-0.5">These will be <strong>updated</strong> with the pasted values. You will be asked to confirm before proceeding.</p>
                     <p className="text-amber-600 text-xs mt-1">Existing: {existingMatchedNames.join(', ')}</p>
                   </div>
