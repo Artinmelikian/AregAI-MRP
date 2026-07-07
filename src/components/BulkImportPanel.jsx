@@ -18,6 +18,11 @@ function parseSheet(text) {
     .filter(row => row.some(cell => cell !== ''))
 }
 
+// Normalize a name for comparison: lowercase, collapse all whitespace to single space
+function normalizeName(name) {
+  return (name ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
 export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
   const [open, setOpen] = useState(false)
   const [raw, setRaw] = useState('')
@@ -50,7 +55,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     const seen = new Set()
     const dupes = new Set()
     for (const row of rows) {
-      const n = (row[nameIdx] ?? '').toLowerCase().trim()
+      const n = normalizeName(row[nameIdx])
       if (!n) continue
       if (seen.has(n)) dupes.add(n)
       seen.add(n)
@@ -66,8 +71,8 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
         if (nameIdx < 0) return new Set()
         return new Set(
           parsed
-            .map(row => (row[nameIdx] ?? '').toLowerCase().trim())
-            .filter(n => n && parts.some(p => p.name.toLowerCase().trim() === n))
+            .map(row => normalizeName(row[nameIdx]))
+            .filter(n => n && parts.some(p => normalizeName(p.name) === n))
         )
       })()
     : new Set()
@@ -78,13 +83,13 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     setConfirmDupes(false)
     setConfirmExisting(false)
 
-    const existingByName = Object.fromEntries(parts.map(p => [p.name.toLowerCase().trim(), p]))
+    const existingByName = Object.fromEntries(parts.map(p => [normalizeName(p.name), p]))
 
     // Deduplicate within paste: last occurrence of each name wins
     const nameIdx = mapping.indexOf('name')
     const seen = new Set()
     const deduped = [...parsed].reverse().filter(row => {
-      const n = (row[nameIdx] ?? '').toLowerCase().trim()
+      const n = normalizeName(row[nameIdx])
       if (!n || seen.has(n)) return false
       seen.add(n)
       return true
@@ -106,7 +111,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
       if (!record.name) continue
 
-      const existing = existingByName[record.name.toLowerCase().trim()]
+      const existing = existingByName[normalizeName(record.name)]
       if (existing) {
         const updates = { ...record }
         delete updates.name
@@ -244,7 +249,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                       const name = nameIdx >= 0 ? row[nameIdx] : ''
                       const nameLower = name.toLowerCase().trim()
                       const isDupe = name && dupeNames.has(nameLower)
-                      const existsInDb = name && parts.some(p => p.name.toLowerCase().trim() === nameLower)
+                      const existsInDb = name && parts.some(p => normalizeName(p.name) === nameLower)
                       const rowColor = isDupe ? 'bg-red-50' : existsInDb ? 'bg-amber-50' : 'bg-green-50'
                       return (
                         <tr key={ri} className={rowColor}>
