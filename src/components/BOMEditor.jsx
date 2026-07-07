@@ -131,6 +131,65 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
     if (ok) { setSelectedPartId(''); setQty(1) }
   }
 
+  // Bulk paste state
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkRaw, setBulkRaw] = useState('')
+  const [bulkParsed, setBulkParsed] = useState(null)
+  const [bulkImporting, setBulkImporting] = useState(false)
+  const [bulkDone, setBulkDone] = useState(null)
+
+  const parseBulk = (text) => {
+    const rows = text
+      .split('\n')
+      .map(r => r.split('\t').map(c => c.trim()))
+      .filter(r => r.some(c => c !== ''))
+    if (!rows.length) return
+
+    const inventoryByName = {}
+    for (const p of allParts) {
+      inventoryByName[normalize(p.name)] = p
+    }
+    const bomById = new Set(items.map(i => i.parts.id))
+    const bomByPartId = Object.fromEntries(items.map(i => [i.parts.id, i]))
+
+    setBulkParsed(rows.map(row => {
+      const name = row[0] ?? ''
+      const qty = Math.max(1, Number(row[1]) || 1)
+      const part = inventoryByName[normalize(name)]
+      if (!name) return null
+      if (!part) return { name, qty, status: 'not_found' }
+      if (bomById.has(part.id)) return { name, qty, part, existingItem: bomByPartId[part.id], status: 'update' }
+      return { name, qty, part, status: 'add' }
+    }).filter(Boolean))
+    setBulkDone(null)
+  }
+
+  const handleBulkPaste = (e) => {
+    setTimeout(() => { parseBulk(e.target.value) }, 0)
+  }
+
+  const handleBulkImport = async () => {
+    if (!bulkParsed) return
+    setBulkImporting(true)
+    const importable = bulkParsed.filter(r => r.status !== 'not_found')
+    let added = 0, updated = 0
+    for (const row of importable) {
+      if (row.status === 'add') {
+        await addItem(row.part.id, row.qty)
+        added++
+      } else if (row.status === 'update') {
+        await updateItem(row.existingItem.id, row.qty)
+        updated++
+      }
+    }
+    setBulkImporting(false)
+    setBulkDone({ added, updated, rejected: bulkParsed.filter(r => r.status === 'not_found').length })
+    setBulkRaw('')
+    setBulkParsed(null)
+  }
+
+  const resetBulk = () => { setBulkRaw(''); setBulkParsed(null); setBulkDone(null) }
+
   if (!model) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
@@ -181,6 +240,102 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
         >
           Add
         </button>
+      </div>
+
+      {/* Bulk paste panel */}
+      <div className="border-b border-gray-100">
+        <button
+          onClick={() => { setBulkOpen(o => !o); resetBulk() }}
+          className="w-full flex items-center justify-between px-6 py-3 text-left hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-600">📋 Paste from Google Sheets</span>
+          <span className="text-gray-400 text-xs">{bulkOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {bulkOpen && (
+          <div className="px-6 pb-5 space-y-4 bg-gray-50">
+            {!bulkParsed && !bulkDone && (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">Paste two columns from Google Sheets: <strong>Part Name</strong> (col A) and <strong>Qty</strong> (col B). Parts not in inventory will be rejected.</p>
+                <textarea
+                  value={bulkRaw}
+                  onChange={e => setBulkRaw(e.target.value)}
+                  onPaste={handleBulkPaste}
+                  placeholder="Paste here…"
+                  rows={5}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-sky-400 resize-y"
+                />
+              </div>
+            )}
+
+            {bulkParsed && !bulkDone && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-700">{bulkParsed.length} rows detected</p>
+                  <button onClick={resetBulk} className="text-xs text-gray-400 hover:text-gray-600">← Paste again</button>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-100 text-gray-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-3 py-2 text-left">#</th>
+                        <th className="px-3 py-2 text-left">Part Name</th>
+                        <th className="px-3 py-2 text-center">Qty</th>
+                        <th className="px-3 py-2 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {bulkParsed.map((row, i) => (
+                        <tr key={i} className={row.status === 'not_found' ? 'bg-red-50' : row.status === 'update' ? 'bg-amber-50' : 'bg-green-50'}>
+                          <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                          <td className="px-3 py-1.5 font-medium text-gray-700">{row.name}</td>
+                          <td className="px-3 py-1.5 text-center tabular-nums">{row.qty}</td>
+                          <td className="px-3 py-1.5">
+                            {row.status === 'not_found' && <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-200 text-red-800">Not in inventory — will be skipped</span>}
+                            {row.status === 'add' && <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-200 text-green-800">Add to BOM</span>}
+                            {row.status === 'update' && <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800">Update qty (was {row.existingItem.quantity_per_unit})</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {bulkParsed.some(r => r.status === 'not_found') && (
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm">
+                    <span className="text-red-500 mt-0.5">⚠</span>
+                    <p className="text-red-700"><strong>{bulkParsed.filter(r => r.status === 'not_found').length} part(s) not found in inventory</strong> and will be skipped. Add them to inventory first, then re-import.</p>
+                  </div>
+                )}
+
+                {bulkParsed.every(r => r.status === 'not_found') ? (
+                  <p className="text-sm text-red-600 font-medium">No importable rows — all parts must exist in inventory first.</p>
+                ) : (
+                  <button
+                    onClick={handleBulkImport}
+                    disabled={bulkImporting}
+                    className="px-5 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-40 transition-colors"
+                  >
+                    {bulkImporting ? 'Importing…' : `Import ${bulkParsed.filter(r => r.status !== 'not_found').length} rows`}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {bulkDone && (
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-5 py-4">
+                <div>
+                  <p className="font-semibold text-green-800">Import complete</p>
+                  <p className="text-sm text-green-600 mt-0.5">
+                    {bulkDone.added} added · {bulkDone.updated} updated{bulkDone.rejected > 0 ? ` · ${bulkDone.rejected} skipped (not in inventory)` : ''}
+                  </p>
+                </div>
+                <button onClick={resetBulk} className="text-sm text-green-700 hover:text-green-900 font-medium">Paste more</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* BOM table */}
