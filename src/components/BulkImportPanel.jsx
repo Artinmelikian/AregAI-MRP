@@ -26,6 +26,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
   const [importing, setImporting] = useState(false)
   const [done, setDone] = useState(null) // { added, updated }
   const [confirmDupes, setConfirmDupes] = useState(false)
+  const [confirmExisting, setConfirmExisting] = useState(false)
 
   const handlePaste = (e) => {
     // Let the textarea receive the paste naturally, then parse
@@ -59,10 +60,23 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
   const dupeNames = parsed ? getDupeNames(parsed, mapping) : new Set()
 
+  const existingNames = parsed
+    ? (() => {
+        const nameIdx = mapping.indexOf('name')
+        if (nameIdx < 0) return new Set()
+        return new Set(
+          parsed
+            .map(row => (row[nameIdx] ?? '').toLowerCase().trim())
+            .filter(n => n && parts.some(p => p.name.toLowerCase().trim() === n))
+        )
+      })()
+    : new Set()
+
   const runImport = async () => {
     if (!parsed?.length) return
     setImporting(true)
     setConfirmDupes(false)
+    setConfirmExisting(false)
 
     const existingByName = Object.fromEntries(parts.map(p => [p.name.toLowerCase().trim(), p]))
 
@@ -123,6 +137,17 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
   const handleImport = () => {
     if (dupeNames.size > 0) {
       setConfirmDupes(true)
+    } else if (existingNames.size > 0) {
+      setConfirmExisting(true)
+    } else {
+      runImport()
+    }
+  }
+
+  const handleConfirmDupes = () => {
+    setConfirmDupes(false)
+    if (existingNames.size > 0) {
+      setConfirmExisting(true)
     } else {
       runImport()
     }
@@ -133,6 +158,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     setParsed(null)
     setDone(null)
     setConfirmDupes(false)
+    setConfirmExisting(false)
   }
 
   return (
@@ -258,17 +284,28 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                 </div>
               )}
 
+              {existingNames.size > 0 && !confirmDupes && !confirmExisting && (
+                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
+                  <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
+                  <div>
+                    <p className="font-semibold text-amber-800">{existingNames.size} part{existingNames.size > 1 ? 's' : ''} already exist in your inventory</p>
+                    <p className="text-amber-700 mt-0.5">These will be <strong>updated</strong> with the pasted values. You will be asked to confirm before proceeding.</p>
+                    <p className="text-amber-600 text-xs mt-1">Existing: {[...existingNames].join(', ')}</p>
+                  </div>
+                </div>
+              )}
+
               {confirmDupes && (
                 <div className="flex items-center gap-3 bg-orange-50 border border-orange-300 rounded-lg px-4 py-3">
                   <p className="text-sm font-medium text-orange-800 flex-1">
                     Proceed and skip earlier duplicates (keeping the last occurrence of each)?
                   </p>
                   <button
-                    onClick={runImport}
+                    onClick={handleConfirmDupes}
                     disabled={importing}
                     className="px-4 py-1.5 bg-orange-600 text-white text-sm font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-40 transition-colors whitespace-nowrap"
                   >
-                    Yes, Import
+                    Yes, continue
                   </button>
                   <button
                     onClick={() => setConfirmDupes(false)}
@@ -279,10 +316,31 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                 </div>
               )}
 
+              {confirmExisting && (
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
+                  <p className="text-sm font-medium text-amber-800 flex-1">
+                    {existingNames.size} existing part{existingNames.size > 1 ? 's' : ''} will be updated with the pasted values. Proceed?
+                  </p>
+                  <button
+                    onClick={runImport}
+                    disabled={importing}
+                    className="px-4 py-1.5 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-40 transition-colors whitespace-nowrap"
+                  >
+                    Yes, Update
+                  </button>
+                  <button
+                    onClick={() => setConfirmExisting(false)}
+                    className="px-4 py-1.5 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                  >
+                    Go Back
+                  </button>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   onClick={handleImport}
-                  disabled={importing || !mapping.includes('name') || confirmDupes}
+                  disabled={importing || !mapping.includes('name') || confirmDupes || confirmExisting}
                   className="px-5 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-40 transition-colors"
                 >
                   {importing ? 'Importing…' : `Import ${parsed.length} rows`}
