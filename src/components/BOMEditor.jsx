@@ -117,7 +117,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
   const [widths, setWidth] = useColumnWidths('bom-column-widths', DEFAULT_WIDTHS)
   const [search, setSearch] = useState('')
 
-  const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
+  const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, '')
   const filteredItems = search.trim()
     ? items.filter(i => normalize(i.parts.name).includes(normalize(search)))
     : items
