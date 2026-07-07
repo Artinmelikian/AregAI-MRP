@@ -18,9 +18,14 @@ function parseSheet(text) {
     .filter(row => row.some(cell => cell !== ''))
 }
 
-// Normalize a name for comparison: lowercase, collapse all whitespace to single space
-function normalizeName(name) {
-  return (name ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
+// Normalize a string for comparison: lowercase, collapse whitespace
+function normalizeStr(s) {
+  return (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+// Composite key: name + description together determine uniqueness
+function compositeKey(name, description) {
+  return normalizeStr(name) + '||' + normalizeStr(description)
 }
 
 export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
@@ -48,34 +53,40 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     }, 0)
   }
 
-  // Compute within-paste duplicate names (names appearing more than once)
-  const getDupeNames = (rows, map) => {
+  // Compute within-paste duplicates: rows with identical name+description
+  const getDupeKeys = (rows, map) => {
     const nameIdx = map.indexOf('name')
+    const descIdx = map.indexOf('description')
     if (nameIdx < 0) return new Set()
     const seen = new Set()
     const dupes = new Set()
     for (const row of rows) {
-      const n = normalizeName(row[nameIdx])
-      if (!n) continue
-      if (seen.has(n)) dupes.add(n)
-      seen.add(n)
+      const key = compositeKey(row[nameIdx], descIdx >= 0 ? row[descIdx] : '')
+      if (!normalizeStr(row[nameIdx])) continue
+      if (seen.has(key)) dupes.add(key)
+      seen.add(key)
     }
     return dupes
   }
 
-  const dupeNames = parsed ? getDupeNames(parsed, mapping) : new Set()
+  const nameIdx = parsed ? mapping.indexOf('name') : -1
+  const descIdx = parsed ? mapping.indexOf('description') : -1
+  const dupeKeys = parsed ? getDupeKeys(parsed, mapping) : new Set()
 
-  const existingNames = parsed
-    ? (() => {
-        const nameIdx = mapping.indexOf('name')
-        if (nameIdx < 0) return new Set()
-        return new Set(
-          parsed
-            .map(row => normalizeName(row[nameIdx]))
-            .filter(n => n && parts.some(p => normalizeName(p.name) === n))
-        )
-      })()
-    : new Set()
+  // Rows that already exist in DB (matched on name + description)
+  const existingByComposite = Object.fromEntries(
+    parts.map(p => [compositeKey(p.name, p.description), p])
+  )
+  const existingMatchedNames = parsed
+    ? [...new Set(
+        parsed
+          .filter(row => {
+            const key = compositeKey(row[nameIdx] ?? '', descIdx >= 0 ? row[descIdx] : '')
+            return normalizeStr(row[nameIdx] ?? '') && existingByComposite[key]
+          })
+          .map(row => (row[nameIdx] ?? '').trim())
+      )]
+    : []
 
   const runImport = async () => {
     if (!parsed?.length) return
@@ -83,15 +94,15 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     setConfirmDupes(false)
     setConfirmExisting(false)
 
-    const existingByName = Object.fromEntries(parts.map(p => [normalizeName(p.name), p]))
+    const niIdx = mapping.indexOf('name')
+    const diIdx = mapping.indexOf('description')
 
-    // Deduplicate within paste: last occurrence of each name wins
-    const nameIdx = mapping.indexOf('name')
+    // Deduplicate within paste: last occurrence of each name+description wins
     const seen = new Set()
     const deduped = [...parsed].reverse().filter(row => {
-      const n = normalizeName(row[nameIdx])
-      if (!n || seen.has(n)) return false
-      seen.add(n)
+      const key = compositeKey(row[niIdx] ?? '', diIdx >= 0 ? row[diIdx] : '')
+      if (!normalizeStr(row[niIdx] ?? '') || seen.has(key)) return false
+      seen.add(key)
       return true
     }).reverse()
 
@@ -111,7 +122,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
       if (!record.name) continue
 
-      const existing = existingByName[normalizeName(record.name)]
+      const existing = existingByComposite[compositeKey(record.name, record.description ?? '')]
       if (existing) {
         const updates = { ...record }
         delete updates.name
@@ -140,9 +151,9 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
   }
 
   const handleImport = () => {
-    if (dupeNames.size > 0) {
+    if (dupeKeys.size > 0) {
       setConfirmDupes(true)
-    } else if (existingNames.size > 0) {
+    } else if (existingMatchedNames.length > 0) {
       setConfirmExisting(true)
     } else {
       runImport()
@@ -151,7 +162,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
   const handleConfirmDupes = () => {
     setConfirmDupes(false)
-    if (existingNames.size > 0) {
+    if (existingMatchedNames.length > 0) {
       setConfirmExisting(true)
     } else {
       runImport()
@@ -245,11 +256,11 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {parsed.slice(0, 10).map((row, ri) => {
-                      const nameIdx = mapping.indexOf('name')
                       const name = nameIdx >= 0 ? row[nameIdx] : ''
-                      const nameLower = name.toLowerCase().trim()
-                      const isDupe = name && dupeNames.has(nameLower)
-                      const existsInDb = name && parts.some(p => normalizeName(p.name) === nameLower)
+                      const desc = descIdx >= 0 ? row[descIdx] : ''
+                      const key = compositeKey(name, desc)
+                      const isDupe = !!name && dupeKeys.has(key)
+                      const existsInDb = !!name && !!existingByComposite[key]
                       const rowColor = isDupe ? 'bg-red-50' : existsInDb ? 'bg-amber-50' : 'bg-green-50'
                       return (
                         <tr key={ri} className={rowColor}>
@@ -276,26 +287,25 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                 </table>
               </div>
 
-              {dupeNames.size > 0 && (
+              {dupeKeys.size > 0 && (
                 <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm">
                   <span className="text-red-500 text-base leading-none mt-0.5">⚠</span>
                   <div>
-                    <p className="font-semibold text-red-800">{dupeNames.size} duplicate part name{dupeNames.size > 1 ? 's' : ''} detected in your paste</p>
+                    <p className="font-semibold text-red-800">{dupeKeys.size} duplicate row{dupeKeys.size > 1 ? 's' : ''} detected (same name + description)</p>
                     <p className="text-red-600 mt-0.5">
-                      Duplicates are highlighted in red. If you continue, only the <strong>last</strong> occurrence of each duplicate will be imported — earlier ones will be skipped.
+                      Duplicates are highlighted in red. If you continue, only the <strong>last</strong> occurrence will be imported — earlier ones will be skipped.
                     </p>
-                    <p className="text-red-500 text-xs mt-1">Duplicates: {[...dupeNames].join(', ')}</p>
                   </div>
                 </div>
               )}
 
-              {existingNames.size > 0 && !confirmDupes && !confirmExisting && (
+              {existingMatchedNames.length > 0 && !confirmDupes && !confirmExisting && (
                 <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
                   <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
                   <div>
-                    <p className="font-semibold text-amber-800">{existingNames.size} part{existingNames.size > 1 ? 's' : ''} already exist in your inventory</p>
+                    <p className="font-semibold text-amber-800">{existingMatchedNames.length} part{existingMatchedNames.length > 1 ? 's' : ''} already exist in your inventory (matched on name + description)</p>
                     <p className="text-amber-700 mt-0.5">These will be <strong>updated</strong> with the pasted values. You will be asked to confirm before proceeding.</p>
-                    <p className="text-amber-600 text-xs mt-1">Existing: {[...existingNames].join(', ')}</p>
+                    <p className="text-amber-600 text-xs mt-1">Existing: {existingMatchedNames.join(', ')}</p>
                   </div>
                 </div>
               )}
@@ -324,7 +334,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
               {confirmExisting && (
                 <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
                   <p className="text-sm font-medium text-amber-800 flex-1">
-                    {existingNames.size} existing part{existingNames.size > 1 ? 's' : ''} will be updated with the pasted values. Proceed?
+                    {existingMatchedNames.length} existing part{existingMatchedNames.length > 1 ? 's' : ''} will be updated with the pasted values. Proceed?
                   </p>
                   <button
                     onClick={runImport}
