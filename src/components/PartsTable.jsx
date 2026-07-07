@@ -204,24 +204,40 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
     }
   }
 
+  const [search, setSearch] = useState('')
+  const filteredParts = search.trim()
+    ? parts.filter(p =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.description || '').toLowerCase().includes(search.toLowerCase())
+      )
+    : parts
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold">
             Parts & Inventory
             <span className="ml-2 text-xs font-medium text-sky-700 bg-sky-50 rounded-full px-2 py-0.5 align-middle">
-              {parts.length} {parts.length === 1 ? 'part type' : 'part types'}
+              {filteredParts.length}{search ? ` of ${parts.length}` : ''} {parts.length === 1 ? 'part type' : 'part types'}
             </span>
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">Drag column headers to reorder</p>
         </div>
-        <button
-          onClick={() => setAdding(true)}
-          className="px-3 py-1.5 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 transition-colors"
-        >
-          + Add Part
-        </button>
+        <div className="flex items-center gap-3">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search name or description…"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-64"
+          />
+          <button
+            onClick={() => setAdding(true)}
+            className="px-3 py-1.5 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 transition-colors whitespace-nowrap"
+          >
+            + Add Part
+          </button>
+        </div>
       </div>
 
       <div className="overflow-auto max-h-[65vh]">
@@ -294,7 +310,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
                 <td />
               </tr>
             )}
-            {parts.map(part => (
+            {filteredParts.map(part => (
               <tr key={part.id} className="hover:bg-gray-50 transition-colors">
                 {columns.map(col => (
                   <td key={col.key} className={`px-4 py-2.5 overflow-hidden ${col.type === 'number' ? 'text-center' : ''}`}>
@@ -314,8 +330,10 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
                 <td />
               </tr>
             ))}
-            {!adding && parts.length === 0 && (
-              <tr><td colSpan={columns.length + 2} className="px-4 py-8 text-center text-gray-400">No parts yet. Click &quot;Add Part&quot; to get started.</td></tr>
+            {!adding && filteredParts.length === 0 && (
+              <tr><td colSpan={columns.length + 2} className="px-4 py-8 text-center text-gray-400">
+                {search ? `No parts match "${search}".` : 'No parts yet. Click "Add Part" to get started.'}
+              </td></tr>
             )}
           </tbody>
         </table>
