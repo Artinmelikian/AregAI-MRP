@@ -116,11 +116,29 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [widths, setWidth] = useColumnWidths('bom-column-widths', DEFAULT_WIDTHS)
   const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState(new Set())
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
 
   const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, '')
   const filteredItems = search.trim()
     ? items.filter(i => normalize(i.parts.name).includes(normalize(search)))
     : items
+
+  const allFilteredSelected = filteredItems.length > 0 && filteredItems.every(i => selected.has(i.id))
+  const toggleOne = (id) => setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  const toggleAll = () => {
+    if (allFilteredSelected) {
+      setSelected(prev => { const next = new Set(prev); filteredItems.forEach(i => next.delete(i.id)); return next })
+    } else {
+      setSelected(prev => new Set([...prev, ...filteredItems.map(i => i.id)]))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    await Promise.all([...selected].map(id => removeItem(id)))
+    setSelected(new Set())
+    setBulkDeleteConfirm(false)
+  }
 
   const existingPartIds = new Set(items.map(i => i.parts.id))
   const availableParts = allParts.filter(p => !existingPartIds.has(p.id))
@@ -205,12 +223,30 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
           <h2 className="text-lg font-semibold">BOM — {model.name}</h2>
           {model.description && <p className="text-sm text-gray-500 mt-0.5">{model.description}</p>}
         </div>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search parts…"
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-52"
-        />
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            bulkDeleteConfirm ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-red-700 font-medium">Delete {selected.size} item{selected.size > 1 ? 's' : ''}?</span>
+                <button onClick={handleBulkDelete} className="px-3 py-1.5 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Yes, Delete</button>
+                <button onClick={() => setBulkDeleteConfirm(false)} className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setBulkDeleteConfirm(true)}
+                className="px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+              >
+                Delete Selected ({selected.size})
+              </button>
+            )
+          )}
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search parts…"
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-52"
+          />
+        </div>
       </div>
 
       {/* Add part row */}
@@ -345,6 +381,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
         <div className="overflow-auto max-h-[65vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
           <colgroup>
+            <col style={{ width: 40 }} />
             <col style={{ width: widths.part }} />
             <col style={{ width: widths.unit }} />
             <col style={{ width: widths.qty }} />
@@ -355,6 +392,9 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
+              <th className="px-3 py-3 text-center">
+                <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} className="cursor-pointer" />
+              </th>
               {[
                 ['part', 'Part', 'text-left'],
                 ['unit', 'Unit', 'text-left'],
@@ -376,7 +416,10 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filteredItems.map(item => (
-              <tr key={item.id} className="hover:bg-gray-50">
+              <tr key={item.id} className={`transition-colors ${selected.has(item.id) ? 'bg-sky-50' : 'hover:bg-gray-50'}`}>
+                <td className="px-3 py-3 text-center">
+                  <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleOne(item.id)} className="cursor-pointer" />
+                </td>
                 <td className="px-6 py-3 font-medium overflow-hidden truncate">{item.parts.name}</td>
                 <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.unit}</td>
                 <td className="px-6 py-3 text-center overflow-hidden">
@@ -406,7 +449,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
               </tr>
             ))}
             {filteredItems.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">
+              <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400">
                 {search ? `No parts match "${search}".` : 'No parts in BOM yet.'}
               </td></tr>
             )}
