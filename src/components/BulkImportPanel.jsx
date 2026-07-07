@@ -23,9 +23,9 @@ function normalizeStr(s) {
   return (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
-// The DB enforces unique part names, so name alone is the key
-function compositeKey(name) {
-  return normalizeStr(name)
+// DB uniqueness is (name, description) — both fields together identify a part
+function compositeKey(name, description) {
+  return normalizeStr(name) + '||' + normalizeStr(description)
 }
 
 export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
@@ -53,15 +53,16 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     }, 0)
   }
 
-  // Compute within-paste duplicates: rows with identical name (DB enforces unique names)
+  // Compute within-paste duplicates: rows with identical name+description
   const getDupeKeys = (rows, map) => {
     const nIdx = map.indexOf('name')
+    const dIdx = map.indexOf('description')
     if (nIdx < 0) return new Set()
     const seen = new Set()
     const dupes = new Set()
     for (const row of rows) {
-      const key = compositeKey(row[nIdx])
-      if (!key) continue
+      const key = compositeKey(row[nIdx], dIdx >= 0 ? row[dIdx] : '')
+      if (!normalizeStr(row[nIdx] ?? '')) continue
       if (seen.has(key)) dupes.add(key)
       seen.add(key)
     }
@@ -74,13 +75,13 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
   // Rows that already exist in DB (matched on name + description)
   const existingByComposite = Object.fromEntries(
-    parts.map(p => [compositeKey(p.name), p])
+    parts.map(p => [compositeKey(p.name, p.description), p])
   )
   const existingMatchedNames = parsed
     ? [...new Set(
         parsed
           .filter(row => {
-            const key = compositeKey(row[nameIdx] ?? '')
+            const key = compositeKey(row[nameIdx] ?? '', descIdx >= 0 ? row[descIdx] ?? '' : '')
             return normalizeStr(row[nameIdx] ?? '') && existingByComposite[key]
           })
           .map(row => (row[nameIdx] ?? '').trim())
@@ -99,7 +100,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     // Deduplicate within paste: last occurrence of each name+description wins
     const seen = new Set()
     const deduped = [...parsed].reverse().filter(row => {
-      const key = compositeKey(row[niIdx] ?? '')
+      const key = compositeKey(row[niIdx] ?? '', diIdx >= 0 ? row[diIdx] ?? '' : '')
       if (!normalizeStr(row[niIdx] ?? '') || seen.has(key)) return false
       seen.add(key)
       return true
@@ -121,7 +122,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
       if (!record.name) continue
 
-      const existing = existingByComposite[compositeKey(record.name)]
+      const existing = existingByComposite[compositeKey(record.name, record.description ?? '')]
       if (existing) {
         const updates = { ...record }
         delete updates.name
@@ -257,7 +258,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                     {parsed.slice(0, 10).map((row, ri) => {
                       const name = nameIdx >= 0 ? row[nameIdx] : ''
                       const desc = descIdx >= 0 ? row[descIdx] : ''
-                      const key = compositeKey(name, desc)
+                      const key = compositeKey(name, descIdx >= 0 ? desc : '')
                       const isDupe = !!name && dupeKeys.has(key)
                       const existsInDb = !!name && !!existingByComposite[key]
                       const rowColor = isDupe ? 'bg-red-50' : existsInDb ? 'bg-amber-50' : 'bg-green-50'
@@ -290,7 +291,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                 <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm">
                   <span className="text-red-500 text-base leading-none mt-0.5">⚠</span>
                   <div>
-                    <p className="font-semibold text-red-800">{dupeKeys.size} duplicate part name{dupeKeys.size > 1 ? 's' : ''} detected in your paste</p>
+                    <p className="font-semibold text-red-800">{dupeKeys.size} duplicate row{dupeKeys.size > 1 ? 's' : ''} detected (same name + description)</p>
                     <p className="text-red-600 mt-0.5">
                       Duplicates are highlighted in red. If you continue, only the <strong>last</strong> occurrence will be imported — earlier ones will be skipped.
                     </p>
