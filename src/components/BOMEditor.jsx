@@ -4,11 +4,12 @@ import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
 
 const DEFAULT_WIDTHS = {
-  part: 220,
-  unit: 90,
-  qty: 120,
-  leadtime: 110,
-  link: 200,
+  part: 180,
+  description: 200,
+  unit: 80,
+  qty: 110,
+  leadtime: 100,
+  link: 180,
   remove: 90,
 }
 
@@ -383,6 +384,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
           <colgroup>
             <col style={{ width: 40 }} />
             <col style={{ width: widths.part }} />
+            <col style={{ width: widths.description }} />
             <col style={{ width: widths.unit }} />
             <col style={{ width: widths.qty }} />
             <col style={{ width: widths.leadtime }} />
@@ -397,6 +399,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
               </th>
               {[
                 ['part', 'Part', 'text-left'],
+                ['description', 'Description', 'text-left'],
                 ['unit', 'Unit', 'text-left'],
                 ['qty', 'Qty / Unit', 'text-center'],
                 ['leadtime', 'Lead Time', 'text-center'],
@@ -421,6 +424,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
                   <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleOne(item.id)} className="cursor-pointer" />
                 </td>
                 <td className="px-6 py-3 font-medium overflow-hidden truncate">{item.parts.name}</td>
+                <td className="px-6 py-3 text-gray-500 overflow-hidden truncate" title={item.parts.description}>{item.parts.description || '—'}</td>
                 <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.unit}</td>
                 <td className="px-6 py-3 text-center overflow-hidden">
                   <EditableQty
@@ -449,7 +453,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
               </tr>
             ))}
             {filteredItems.length === 0 && (
-              <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400">
+              <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">
                 {search ? `No parts match "${search}".` : 'No parts in BOM yet.'}
               </td></tr>
             )}

@@ -11,7 +11,7 @@ export function useBOM(robotModelId) {
     setLoading(true)
     const { data, error } = await supabase
       .from('bom_items')
-      .select('*, parts(id, name, unit, lead_time_days, link)')
+      .select('*, parts(id, name, description, unit, lead_time_days, link)')
       .eq('robot_model_id', robotModelId)
       .order('parts(name)')
     if (error) toast.error('Failed to load BOM')
@@ -25,7 +25,7 @@ export function useBOM(robotModelId) {
     const { data, error } = await supabase
       .from('bom_items')
       .insert({ robot_model_id: robotModelId, part_id: partId, quantity_per_unit: quantityPerUnit })
-      .select('*, parts(id, name, unit, lead_time_days, link)')
+      .select('*, parts(id, name, description, unit, lead_time_days, link)')
       .single()
     if (error) { toast.error(error.message); return false }
     setItems(prev => [...prev, data])
