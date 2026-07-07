@@ -13,7 +13,11 @@ export default function Models() {
   const [newModel, setNewModel] = useState({ name: '', description: '' })
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
+  const [modelSearch, setModelSearch] = useState('')
   const selectedModel = models.find(m => m.id === selectedId) ?? null
+  const filteredModels = modelSearch.trim()
+    ? models.filter(m => m.name.toLowerCase().includes(modelSearch.toLowerCase()))
+    : models
 
   const handleAdd = async () => {
     if (!newModel.name.trim()) return
@@ -39,10 +43,16 @@ export default function Models() {
       <div className="flex gap-6">
         {/* Model list */}
         <div className="w-56 flex-shrink-0 space-y-2">
+          <input
+            value={modelSearch}
+            onChange={e => setModelSearch(e.target.value)}
+            placeholder="Search models…"
+            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400"
+          />
           {loading ? (
             <p className="text-sm text-gray-400">Loading…</p>
           ) : (
-            models.map(model => (
+            filteredModels.map(model => (
               <div
                 key={model.id}
                 className={`relative group rounded-lg border px-4 py-3 cursor-pointer transition-colors ${

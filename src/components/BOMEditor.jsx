@@ -115,6 +115,11 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
   const [qty, setQty] = useState(1)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [widths, setWidth] = useColumnWidths('bom-column-widths', DEFAULT_WIDTHS)
+  const [search, setSearch] = useState('')
+
+  const filteredItems = search.trim()
+    ? items.filter(i => i.parts.name.toLowerCase().includes(search.toLowerCase()))
+    : items
 
   const existingPartIds = new Set(items.map(i => i.parts.id))
   const availableParts = allParts.filter(p => !existingPartIds.has(p.id))
@@ -135,9 +140,17 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="text-lg font-semibold">BOM — {model.name}</h2>
-        {model.description && <p className="text-sm text-gray-500 mt-0.5">{model.description}</p>}
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">BOM — {model.name}</h2>
+          {model.description && <p className="text-sm text-gray-500 mt-0.5">{model.description}</p>}
+        </div>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search parts…"
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-52"
+        />
       </div>
 
       {/* Add part row */}
@@ -206,7 +219,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {items.map(item => (
+            {filteredItems.map(item => (
               <tr key={item.id} className="hover:bg-gray-50">
                 <td className="px-6 py-3 font-medium overflow-hidden truncate">{item.parts.name}</td>
                 <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.unit}</td>
@@ -236,8 +249,10 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
                 <td />
               </tr>
             ))}
-            {items.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">No parts in BOM yet.</td></tr>
+            {filteredItems.length === 0 && (
+              <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400">
+                {search ? `No parts match "${search}".` : 'No parts in BOM yet.'}
+              </td></tr>
             )}
           </tbody>
         </table>
