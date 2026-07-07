@@ -25,6 +25,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
   const [mapping, setMapping] = useState([]) // column index → field key
   const [importing, setImporting] = useState(false)
   const [done, setDone] = useState(null) // { added, updated }
+  const [confirmDupes, setConfirmDupes] = useState(false)
 
   const handlePaste = (e) => {
     // Let the textarea receive the paste naturally, then parse
@@ -41,15 +42,44 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     }, 0)
   }
 
-  const handleImport = async () => {
+  // Compute within-paste duplicate names (names appearing more than once)
+  const getDupeNames = (rows, map) => {
+    const nameIdx = map.indexOf('name')
+    if (nameIdx < 0) return new Set()
+    const seen = new Set()
+    const dupes = new Set()
+    for (const row of rows) {
+      const n = (row[nameIdx] ?? '').toLowerCase().trim()
+      if (!n) continue
+      if (seen.has(n)) dupes.add(n)
+      seen.add(n)
+    }
+    return dupes
+  }
+
+  const dupeNames = parsed ? getDupeNames(parsed, mapping) : new Set()
+
+  const runImport = async () => {
     if (!parsed?.length) return
     setImporting(true)
+    setConfirmDupes(false)
 
     const existingByName = Object.fromEntries(parts.map(p => [p.name.toLowerCase().trim(), p]))
+
+    // Deduplicate within paste: last occurrence of each name wins
+    const nameIdx = mapping.indexOf('name')
+    const seen = new Set()
+    const deduped = [...parsed].reverse().filter(row => {
+      const n = (row[nameIdx] ?? '').toLowerCase().trim()
+      if (!n || seen.has(n)) return false
+      seen.add(n)
+      return true
+    }).reverse()
+
     let added = 0
     let updated = 0
 
-    for (const row of parsed) {
+    for (const row of deduped) {
       const record = {}
       row.forEach((cell, i) => {
         const field = mapping[i]
@@ -64,7 +94,6 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
 
       const existing = existingByName[record.name.toLowerCase().trim()]
       if (existing) {
-        // Update existing part
         const updates = { ...record }
         delete updates.name
         if (Object.keys(updates).length > 0) {
@@ -72,7 +101,6 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
           updated++
         }
       } else {
-        // Add new part
         await onAdd({
           name: record.name,
           description: record.description ?? '',
@@ -87,15 +115,24 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
     }
 
     setImporting(false)
-    setDone({ added, updated })
+    setDone({ added, updated, skipped: parsed.length - deduped.length })
     setRaw('')
     setParsed(null)
+  }
+
+  const handleImport = () => {
+    if (dupeNames.size > 0) {
+      setConfirmDupes(true)
+    } else {
+      runImport()
+    }
   }
 
   const reset = () => {
     setRaw('')
     setParsed(null)
     setDone(null)
+    setConfirmDupes(false)
   }
 
   return (
@@ -179,17 +216,24 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                     {parsed.slice(0, 10).map((row, ri) => {
                       const nameIdx = mapping.indexOf('name')
                       const name = nameIdx >= 0 ? row[nameIdx] : ''
-                      const exists = name && parts.some(p => p.name.toLowerCase().trim() === name.toLowerCase().trim())
+                      const nameLower = name.toLowerCase().trim()
+                      const isDupe = name && dupeNames.has(nameLower)
+                      const existsInDb = name && parts.some(p => p.name.toLowerCase().trim() === nameLower)
+                      const rowColor = isDupe ? 'bg-red-50' : existsInDb ? 'bg-amber-50' : 'bg-green-50'
                       return (
-                        <tr key={ri} className={exists ? 'bg-amber-50' : 'bg-green-50'}>
+                        <tr key={ri} className={rowColor}>
                           <td className="px-3 py-1.5 text-gray-400">{ri + 1}</td>
                           {row.map((cell, ci) => (
                             <td key={ci} className="px-3 py-1.5 text-gray-700 max-w-40 truncate">{cell}</td>
                           ))}
                           <td className="px-3 py-1.5">
-                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${exists ? 'bg-amber-200 text-amber-800' : 'bg-green-200 text-green-800'}`}>
-                              {exists ? 'Update' : 'Add'}
-                            </span>
+                            {isDupe ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-200 text-red-800">Duplicate</span>
+                            ) : existsInDb ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800">Update</span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-200 text-green-800">Add</span>
+                            )}
                           </td>
                         </tr>
                       )
@@ -201,10 +245,44 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
                 </table>
               </div>
 
+              {dupeNames.size > 0 && (
+                <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm">
+                  <span className="text-red-500 text-base leading-none mt-0.5">⚠</span>
+                  <div>
+                    <p className="font-semibold text-red-800">{dupeNames.size} duplicate part name{dupeNames.size > 1 ? 's' : ''} detected in your paste</p>
+                    <p className="text-red-600 mt-0.5">
+                      Duplicates are highlighted in red. If you continue, only the <strong>last</strong> occurrence of each duplicate will be imported — earlier ones will be skipped.
+                    </p>
+                    <p className="text-red-500 text-xs mt-1">Duplicates: {[...dupeNames].join(', ')}</p>
+                  </div>
+                </div>
+              )}
+
+              {confirmDupes && (
+                <div className="flex items-center gap-3 bg-orange-50 border border-orange-300 rounded-lg px-4 py-3">
+                  <p className="text-sm font-medium text-orange-800 flex-1">
+                    Proceed and skip earlier duplicates (keeping the last occurrence of each)?
+                  </p>
+                  <button
+                    onClick={runImport}
+                    disabled={importing}
+                    className="px-4 py-1.5 bg-orange-600 text-white text-sm font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-40 transition-colors whitespace-nowrap"
+                  >
+                    Yes, Import
+                  </button>
+                  <button
+                    onClick={() => setConfirmDupes(false)}
+                    className="px-4 py-1.5 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                  >
+                    Go Back
+                  </button>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   onClick={handleImport}
-                  disabled={importing || !mapping.includes('name')}
+                  disabled={importing || !mapping.includes('name') || confirmDupes}
                   className="px-5 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-40 transition-colors"
                 >
                   {importing ? 'Importing…' : `Import ${parsed.length} rows`}
@@ -221,7 +299,7 @@ export default function BulkImportPanel({ parts, onAdd, onUpdate }) {
               <div>
                 <p className="font-semibold text-green-800">Import complete</p>
                 <p className="text-sm text-green-600 mt-0.5">
-                  {done.added} parts added · {done.updated} parts updated
+                  {done.added} parts added · {done.updated} parts updated{done.skipped > 0 ? ` · ${done.skipped} duplicate${done.skipped > 1 ? 's' : ''} skipped` : ''}
                 </p>
               </div>
               <button onClick={reset} className="text-sm text-green-700 hover:text-green-900 font-medium">
