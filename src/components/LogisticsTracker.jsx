@@ -48,7 +48,7 @@ const COLS = [
   { key: 'payment_method',              label: 'Payment Method',                type: 'select',  w: 150, options: ['Invoice', 'PayPal'] },
   { key: 'invoice_status',              label: 'Invoice Status',                type: 'select',  w: 220, options: ['Issued', 'Transfered to Finance Department', 'Paid'] },
   { key: 'invoice_status_date',         label: 'Invoice Status Date',           type: 'date',    w: 150 },
-  { key: 'source_of_procurement',       label: 'Source of Procurement',         type: 'text',    w: 180 },
+  { key: 'source_of_procurement',       label: 'Source of Procurement',         type: 'select',  w: 190, options: ['Directly from Supplier', 'Supplier Webpage', 'External Marketplace'] },
   { key: 'delivery_term',               label: 'Delivery Term',                 type: 'text',    w: 140 },
   { key: 'actual_arrival_date',         label: 'Actual Arrival',               type: 'date',    w: 130 },
   { key: 'transportation_cost',         label: 'Transportation Cost',           type: 'number',  w: 160 },
