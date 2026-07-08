@@ -9,6 +9,7 @@ import Parts from './pages/Parts'
 import Models from './pages/Models'
 import Planner from './pages/Planner'
 import Purchasing from './pages/Purchasing'
+import Logistics from './pages/Logistics'
 
 function AuthGuard({ children }) {
   const [session, setSession] = useState(undefined)
@@ -73,6 +74,7 @@ export default function App() {
                   <Route path="/models" element={<Models />} />
                   <Route path="/planner" element={<Planner />} />
                   <Route path="/purchasing" element={<Purchasing />} />
+                  <Route path="/logistics" element={<Logistics />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>

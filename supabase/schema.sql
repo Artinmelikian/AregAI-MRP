@@ -90,6 +90,27 @@ alter table parts add constraint parts_purchasing_status_check
 -- Quantity currently on order for each part
 alter table parts add column if not exists qty_on_order integer not null default 0;
 
+-- Logistics tracker: per-shipment tracking for purchased goods
+create table if not exists logistics (
+  id uuid primary key default gen_random_uuid(),
+  part_id uuid not null references parts(id) on delete cascade,
+  supplier text,
+  carrier text,
+  tracking_number text,
+  qty integer not null default 1,
+  eta date,
+  status text not null default 'Awaiting Dispatch',
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table logistics add constraint logistics_status_check
+  check (status in ('Awaiting Dispatch','In Transit','In Customs','Out for Delivery','Delivered','Exception'));
+
+alter table logistics enable row level security;
+create policy "authenticated_all" on logistics for all to authenticated using (true) with check (true);
+
 -- ============================================================
 -- Seed Data
 -- ============================================================

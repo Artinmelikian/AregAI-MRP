@@ -9,6 +9,7 @@ const navItems = [
   { to: '/models', label: 'Robot Models', icon: '🤖' },
   { to: '/planner', label: 'Production Planner', icon: '🏭' },
   { to: '/purchasing', label: 'Purchasing Tracker', icon: '🛒' },
+  { to: '/logistics', label: 'Logistics Tracker', icon: '🚚' },
 ]
 
 const COLLAPSE_KEY = 'sidebar-collapsed'
