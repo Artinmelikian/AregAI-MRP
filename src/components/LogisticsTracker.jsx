@@ -153,28 +153,30 @@ function SelectCell({ value, options, onSave }) {
 }
 
 function StatusCell({ value, onChange }) {
-  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
   const color = STATUS_COLORS[value] ?? 'bg-gray-100 text-gray-700'
+
+  if (editing) {
+    return (
+      <select
+        autoFocus
+        value={value ?? ''}
+        onChange={e => { onChange(e.target.value); setEditing(false) }}
+        onBlur={() => setEditing(false)}
+        className="w-full border border-sky-400 rounded px-2 py-1 text-sm outline-none"
+      >
+        {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+      </select>
+    )
+  }
+
   return (
-    <div className="relative">
-      <button onClick={() => setOpen(o => !o)}
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap hover:opacity-80 transition-opacity ${color}`}>
-        {value}<span className="opacity-60">▾</span>
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-44">
-            {STATUS_OPTIONS.map(s => (
-              <button key={s} onClick={() => { onChange(s); setOpen(false) }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50">
-                <span className={`inline-block px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[s]}`}>{s}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    <span
+      onClick={() => setEditing(true)}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${color}`}
+    >
+      {value}<span className="opacity-60">▾</span>
+    </span>
   )
 }
 
