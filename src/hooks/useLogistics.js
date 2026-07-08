@@ -10,7 +10,7 @@ export function useLogistics() {
     setLoading(true)
     const { data, error } = await supabase
       .from('logistics')
-      .select('*, parts(id, name, description)')
+      .select('*')
       .order('created_at', { ascending: false })
     if (error) toast.error('Failed to load logistics')
     else setShipments(data)
@@ -23,7 +23,7 @@ export function useLogistics() {
     const { data, error } = await supabase
       .from('logistics')
       .insert(record)
-      .select('*, parts(id, name, description)')
+      .select('*')
       .single()
     if (error) { toast.error(error.message); return false }
     setShipments(prev => [data, ...prev])

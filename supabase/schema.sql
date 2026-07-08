@@ -90,17 +90,33 @@ alter table parts add constraint parts_purchasing_status_check
 -- Quantity currently on order for each part
 alter table parts add column if not exists qty_on_order integer not null default 0;
 
--- Logistics tracker: per-shipment tracking for purchased goods
+-- Logistics tracker: standalone shipment tracking (not linked to parts inventory)
 create table if not exists logistics (
   id uuid primary key default gen_random_uuid(),
-  part_id uuid not null references parts(id) on delete cascade,
-  supplier text,
-  carrier text,
-  tracking_number text,
-  qty integer not null default 1,
-  eta date,
+  product_name text not null,
   status text not null default 'Awaiting Dispatch',
-  notes text,
+  eta date,
+  quantity numeric,
+  supplier text,
+  unit_price numeric,
+  invoice_amount numeric,
+  currency text,
+  order_date date,
+  responsible_person text,
+  department text,
+  lead_time_days integer,
+  payment_method text,
+  invoice_status text,
+  invoice_status_date date,
+  source_of_procurement text,
+  delivery_term text,
+  actual_arrival_date date,
+  transportation_cost numeric,
+  transportation_payment text,
+  custom_clearance_cost numeric,
+  custom_clearance_status text,
+  expertise_service_fee numeric,
+  expertise_fee_payment_status text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
