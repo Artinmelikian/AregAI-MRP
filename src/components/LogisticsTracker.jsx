@@ -178,22 +178,10 @@ function StatusCell({ value, onChange }) {
   )
 }
 
-const EMPTY_ROW = {
-  product_name: '', status: 'Order Received', eta: '', quantity: '',
-  supplier: '', unit_price: '', invoice_amount: '', currency: '',
-  order_date: '', responsible_person: '', department: '', lead_time_days: '',
-  payment_method: '', invoice_status: '', invoice_status_date: '',
-  source_of_procurement: '', delivery_term: '', actual_arrival_date: '',
-  transportation_cost: '', transportation_payment: '', custom_clearance_cost: '',
-  custom_clearance_status: '', expertise_service_fee: '', expertise_fee_payment_status: '',
-}
-
 export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete }) {
   const [widths, setWidth] = useColumnWidths('logistics-column-widths-v2', DEFAULT_WIDTHS)
   const [search, setSearch] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
-  const [adding, setAdding] = useState(false)
-  const [newRow, setNewRow] = useState({ ...EMPTY_ROW })
 
   const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, '')
   const filtered = search.trim()
@@ -205,18 +193,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
       )
     : shipments
 
-  const handleAdd = async () => {
-    if (!newRow.product_name.trim()) return
-    const record = {}
-    COLS.forEach(c => {
-      const v = newRow[c.key]
-      if (v !== '' && v !== null && v !== undefined) {
-        record[c.key] = c.type === 'number' ? Number(v) : v
-      }
-    })
-    const ok = await onAdd({ ...record, product_name: newRow.product_name.trim(), status: newRow.status })
-    if (ok) { setAdding(false); setNewRow({ ...EMPTY_ROW }) }
-  }
+  const handleAdd = () => onAdd({ product_name: 'New Shipment', status: 'Order Received' })
 
   const totalCols = COLS.length + 2 // + actions + spacer
 
@@ -270,44 +247,6 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {/* Add row */}
-            {adding && (
-              <tr className="bg-sky-50">
-                {COLS.map(c => (
-                  <td key={c.key} className="px-3 py-2">
-                    {c.type === 'status' ? (
-                      <select value={newRow.status}
-                        onChange={e => setNewRow(r => ({ ...r, status: e.target.value }))}
-                        className="w-full border border-sky-300 rounded px-2 py-1 text-sm outline-none">
-                        {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
-                      </select>
-                    ) : c.type === 'select' ? (
-                      <select value={newRow[c.key] ?? ''}
-                        onChange={e => setNewRow(r => ({ ...r, [c.key]: e.target.value }))}
-                        className="w-full border border-sky-300 rounded px-2 py-1 text-sm outline-none">
-                        <option value="">—</option>
-                        {c.options.map(o => <option key={o}>{o}</option>)}
-                      </select>
-                    ) : (
-                      <input
-                        autoFocus={c.key === 'product_name'}
-                        type={c.type === 'number' ? 'number' : c.type === 'date' ? 'date' : 'text'}
-                        value={newRow[c.key] ?? ''}
-                        onChange={e => setNewRow(r => ({ ...r, [c.key]: e.target.value }))}
-                        placeholder={c.label}
-                        className="w-full border border-sky-300 rounded px-2 py-1 text-sm outline-none"
-                      />
-                    )}
-                  </td>
-                ))}
-                <td className="px-4 py-2 text-right space-x-2 whitespace-nowrap">
-                  <button onClick={handleAdd} className="text-green-600 hover:text-green-800 font-medium text-xs">Save</button>
-                  <button onClick={() => setAdding(false)} className="text-gray-400 hover:text-gray-600 text-xs">Cancel</button>
-                </td>
-                <td />
-              </tr>
-            )}
-
             {/* Data rows */}
             {filtered.map(s => (
               <tr key={s.id} className="hover:bg-gray-50 transition-colors">
@@ -346,7 +285,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
               </tr>
             ))}
 
-            {!adding && filtered.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
                 <td colSpan={totalCols} className="px-4 py-10 text-center text-gray-400">
                   {search ? `No shipments match "${search}".` : 'No shipments yet. Click "+ Add Shipment" to get started.'}
