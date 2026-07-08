@@ -46,7 +46,7 @@ const COLS = [
   { key: 'department',                  label: 'Department',                    type: 'text',    w: 140 },
   { key: 'lead_time_days',              label: 'Lead Time (days)',              type: 'number',  w: 130 },
   { key: 'payment_method',              label: 'Payment Method',                type: 'select',  w: 150, options: ['Invoice', 'PayPal'] },
-  { key: 'invoice_status',              label: 'Invoice Status',                type: 'text',    w: 200 },
+  { key: 'invoice_status',              label: 'Invoice Status',                type: 'select',  w: 220, options: ['Issued', 'Transfered to Finance Department', 'Paid'] },
   { key: 'invoice_status_date',         label: 'Invoice Status Date',           type: 'date',    w: 150 },
   { key: 'source_of_procurement',       label: 'Source of Procurement',         type: 'text',    w: 180 },
   { key: 'delivery_term',               label: 'Delivery Term',                 type: 'text',    w: 140 },
