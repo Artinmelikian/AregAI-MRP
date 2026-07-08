@@ -30,7 +30,7 @@ const STATUS_COLORS = {
   'Delivered / Received':          'bg-green-100 text-green-800',
 }
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AED', 'TRY', 'CNY', 'JPY', 'Other']
+const CURRENCIES = ['USD', 'EUR', 'AMD']
 
 const COLS = [
   { key: 'product_name',               label: 'Product Name',                  type: 'text',    w: 200 },
