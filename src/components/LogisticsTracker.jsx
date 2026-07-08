@@ -3,21 +3,31 @@ import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
 
 const STATUS_OPTIONS = [
-  'Awaiting Dispatch',
-  'In Transit',
-  'In Customs',
-  'Out for Delivery',
-  'Delivered',
-  'Exception',
+  'Order Received',
+  'Source Chosen',
+  'Invoice Issued',
+  'Invoice Passed to Finance Dep',
+  'Invoice Paid',
+  'In Lead Time',
+  'Ready To Pickup',
+  'Picked Up / On The Way',
+  'Arrived to Armenia',
+  'In Custom Clearance',
+  'Delivered / Received',
 ]
 
 const STATUS_COLORS = {
-  'Awaiting Dispatch': 'bg-gray-100 text-gray-700',
-  'In Transit':        'bg-blue-100 text-blue-800',
-  'In Customs':        'bg-yellow-100 text-yellow-800',
-  'Out for Delivery':  'bg-sky-100 text-sky-800',
-  'Delivered':         'bg-green-100 text-green-800',
-  'Exception':         'bg-red-100 text-red-800',
+  'Order Received':                'bg-gray-100 text-gray-700',
+  'Source Chosen':                 'bg-purple-100 text-purple-800',
+  'Invoice Issued':                'bg-yellow-100 text-yellow-800',
+  'Invoice Passed to Finance Dep': 'bg-orange-100 text-orange-800',
+  'Invoice Paid':                  'bg-amber-100 text-amber-800',
+  'In Lead Time':                  'bg-blue-100 text-blue-800',
+  'Ready To Pickup':               'bg-sky-100 text-sky-800',
+  'Picked Up / On The Way':        'bg-indigo-100 text-indigo-800',
+  'Arrived to Armenia':            'bg-teal-100 text-teal-800',
+  'In Custom Clearance':           'bg-rose-100 text-rose-800',
+  'Delivered / Received':          'bg-green-100 text-green-800',
 }
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AED', 'TRY', 'CNY', 'JPY', 'Other']
@@ -169,7 +179,7 @@ function StatusCell({ value, onChange }) {
 }
 
 const EMPTY_ROW = {
-  product_name: '', status: 'Awaiting Dispatch', eta: '', quantity: '',
+  product_name: '', status: 'Order Received', eta: '', quantity: '',
   supplier: '', unit_price: '', invoice_amount: '', currency: '',
   order_date: '', responsible_person: '', department: '', lead_time_days: '',
   payment_method: '', invoice_status: '', invoice_status_date: '',

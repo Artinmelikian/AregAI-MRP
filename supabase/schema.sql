@@ -122,7 +122,11 @@ create table if not exists logistics (
 );
 
 alter table logistics add constraint logistics_status_check
-  check (status in ('Awaiting Dispatch','In Transit','In Customs','Out for Delivery','Delivered','Exception'));
+  check (status in (
+    'Order Received','Source Chosen','Invoice Issued','Invoice Passed to Finance Dep',
+    'Invoice Paid','In Lead Time','Ready To Pickup','Picked Up / On The Way',
+    'Arrived to Armenia','In Custom Clearance','Delivered / Received'
+  ));
 
 alter table logistics enable row level security;
 create policy "authenticated_all" on logistics for all to authenticated using (true) with check (true);
