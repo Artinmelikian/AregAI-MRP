@@ -56,7 +56,7 @@ const COLS = [
   { key: 'custom_clearance_cost',       label: 'Custom Clearance Cost',         type: 'number',  w: 170 },
   { key: 'custom_clearance_status',     label: 'Custom Clearance Status',       type: 'select',  w: 210, options: ['Arrived at custom serivce', 'Info Passed to Finance Department', 'Tax paid', 'Custom Clearance Completed'] },
   { key: 'expertise_service_fee',       label: 'Expertise Service Fee',         type: 'number',  w: 170 },
-  { key: 'expertise_fee_payment_status',label: 'Expertise Fee Payment Status',  type: 'text',    w: 210 },
+  { key: 'expertise_fee_payment_status',label: 'Expertise Fee Payment Status',  type: 'select',  w: 210, options: ['Info Passed to Finance Department', 'Tax paid'] },
 ]
 
 const DEFAULT_WIDTHS = Object.fromEntries(COLS.map(c => [c.key, c.w]))
