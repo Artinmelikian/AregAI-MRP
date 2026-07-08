@@ -52,7 +52,7 @@ const COLS = [
   { key: 'delivery_term',               label: 'Delivery Term',                 type: 'select',  w: 160, options: ['Container', 'Air', 'Fedex/DHL/UPS', 'Globbing/Onex'] },
   { key: 'actual_arrival_date',         label: 'Actual Arrival',               type: 'date',    w: 130 },
   { key: 'transportation_cost',         label: 'Transportation Cost',           type: 'number',  w: 160 },
-  { key: 'transportation_payment',      label: 'Transportation Payment',        type: 'text',    w: 180 },
+  { key: 'transportation_payment',      label: 'Transportation Payment',        type: 'select',  w: 200, options: ['Invoice Issued', 'Invoice shared with Finance Department', 'Invoice Paid'] },
   { key: 'custom_clearance_cost',       label: 'Custom Clearance Cost',         type: 'number',  w: 170 },
   { key: 'custom_clearance_status',     label: 'Custom Clearance Status',       type: 'text',    w: 200 },
   { key: 'expertise_service_fee',       label: 'Expertise Service Fee',         type: 'number',  w: 170 },
