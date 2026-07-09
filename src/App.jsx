@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { supabase, supabaseConfigured } from './lib/supabase'
+import { useUserRole } from './hooks/useUserRole'
 import Layout from './components/Layout'
+
+export const RoleContext = createContext({ isViewer: false })
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Parts from './pages/Parts'
@@ -55,6 +58,11 @@ function SetupRequired() {
   )
 }
 
+function RoleProvider({ children }) {
+  const { isViewer } = useUserRole()
+  return <RoleContext.Provider value={{ isViewer }}>{children}</RoleContext.Provider>
+}
+
 export default function App() {
   if (!supabaseConfigured) return <SetupRequired />
 
@@ -67,6 +75,7 @@ export default function App() {
           path="/*"
           element={
             <AuthGuard>
+              <RoleProvider>
               <Layout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
@@ -78,6 +87,7 @@ export default function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>
+              </RoleProvider>
             </AuthGuard>
           }
         />

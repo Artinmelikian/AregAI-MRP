@@ -110,7 +110,7 @@ function EditableLink({ value, onSave }) {
   )
 }
 
-export default function BOMEditor({ model, allParts, onUpdatePart }) {
+export default function BOMEditor({ model, allParts, onUpdatePart, readOnly = false }) {
   const { items, loading, addItem, updateItem, removeItem, refresh } = useBOM(model?.id)
   const [selectedPartId, setSelectedPartId] = useState('')
   const [qty, setQty] = useState(1)
@@ -225,7 +225,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
           {model.description && <p className="text-sm text-gray-500 mt-0.5">{model.description}</p>}
         </div>
         <div className="flex items-center gap-2">
-          {selected.size > 0 && (
+          {!readOnly && selected.size > 0 && (
             bulkDeleteConfirm ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-red-700 font-medium">Delete {selected.size} item{selected.size > 1 ? 's' : ''}?</span>
@@ -251,7 +251,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
       </div>
 
       {/* Add part row */}
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50">
+      {!readOnly && <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50">
         <select
           value={selectedPartId}
           onChange={e => setSelectedPartId(e.target.value)}
@@ -277,10 +277,10 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
         >
           Add
         </button>
-      </div>
+      </div>}
 
       {/* Bulk paste panel */}
-      <div className="border-b border-gray-100">
+      {!readOnly && <div className="border-b border-gray-100">
         <button
           onClick={() => { setBulkOpen(o => !o); resetBulk() }}
           className="w-full flex items-center justify-between px-6 py-3 text-left hover:bg-gray-50 transition-colors"
@@ -373,7 +373,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* BOM table */}
       {loading ? (
@@ -394,9 +394,9 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
-              <th className="px-3 py-3 text-center">
+              {!readOnly && <th className="px-3 py-3 text-center">
                 <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} className="cursor-pointer" />
-              </th>
+              </th>}
               {[
                 ['part', 'Part', 'text-left'],
                 ['description', 'Description', 'text-left'],
@@ -420,26 +420,30 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
           <tbody className="divide-y divide-gray-100">
             {filteredItems.map(item => (
               <tr key={item.id} className={`transition-colors ${selected.has(item.id) ? 'bg-sky-50' : 'hover:bg-gray-50'}`}>
-                <td className="px-3 py-3 text-center">
+                {!readOnly && <td className="px-3 py-3 text-center">
                   <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleOne(item.id)} className="cursor-pointer" />
-                </td>
+                </td>}
                 <td className="px-6 py-3 font-medium overflow-hidden truncate">{item.parts.name}</td>
                 <td className="px-6 py-3 text-gray-500 overflow-hidden truncate" title={item.parts.description}>{item.parts.description || '—'}</td>
                 <td className="px-6 py-3 text-gray-500 overflow-hidden truncate">{item.parts.unit}</td>
                 <td className="px-6 py-3 text-center overflow-hidden">
-                  <EditableQty
-                    value={item.quantity_per_unit}
-                    onSave={v => updateItem(item.id, v)}
-                  />
+                  {readOnly ? item.quantity_per_unit : (
+                    <EditableQty value={item.quantity_per_unit} onSave={v => updateItem(item.id, v)} />
+                  )}
                 </td>
                 <td className="px-6 py-3 text-center text-gray-500 overflow-hidden truncate">{item.parts.lead_time_days}d</td>
                 <td className="px-6 py-3 overflow-hidden">
-                  <EditableLink
-                    value={item.parts.link}
-                    onSave={async v => { await onUpdatePart(item.parts.id, { link: v }); refresh() }}
-                  />
+                  {readOnly ? (
+                    item.parts.link ? (
+                      /^https?:\/\//i.test(item.parts.link)
+                        ? <a href={item.parts.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline text-sm truncate block">🔗 {item.parts.link.replace(/^https?:\/\//, '')}</a>
+                        : <span className="text-sm text-gray-700 truncate block">{item.parts.link}</span>
+                    ) : null
+                  ) : (
+                    <EditableLink value={item.parts.link} onSave={async v => { await onUpdatePart(item.parts.id, { link: v }); refresh() }} />
+                  )}
                 </td>
-                <td className="px-6 py-3 text-right">
+                {!readOnly && <td className="px-6 py-3 text-right">
                   {deleteConfirm === item.id ? (
                     <span className="space-x-2">
                       <button onClick={() => { removeItem(item.id); setDeleteConfirm(null) }} className="text-red-600 hover:text-red-800 text-xs font-medium">Confirm</button>
@@ -448,7 +452,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart }) {
                   ) : (
                     <button onClick={() => setDeleteConfirm(item.id)} className="text-gray-300 hover:text-red-500 transition-colors">✕</button>
                   )}
-                </td>
+                </td>}
                 <td />
               </tr>
             ))}

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
+import { RoleContext } from '../App'
 import toast from 'react-hot-toast'
 import { useRobotModels } from '../hooks/useRobotModels'
 import { useProduction } from '../hooks/useProduction'
@@ -9,6 +10,7 @@ import PlannerResults from '../components/PlannerResults'
 import SavedPlansPanel from '../components/SavedPlansPanel'
 
 export default function Planner() {
+  const { isViewer } = useContext(RoleContext)
   const { models, loading } = useRobotModels()
   const { results, calculating, calculate, reset, patchRowStatus } = useProduction()
   const { plans, loading: plansLoading, savePlan, updatePlan, deletePlan } = useProductionPlans()
@@ -93,10 +95,10 @@ export default function Planner() {
           results={results}
           onReset={handleNewPlan}
           currentPlan={currentPlan}
-          onSave={handleSave}
-          onSaveAsNew={handleSaveAsNew}
+          onSave={isViewer ? null : handleSave}
+          onSaveAsNew={isViewer ? null : handleSaveAsNew}
           onEdit={handleEditInputs}
-          onSendToPurchasing={handleSendToPurchasing}
+          onSendToPurchasing={isViewer ? null : handleSendToPurchasing}
         />
       ) : (
         <>
@@ -112,8 +114,8 @@ export default function Planner() {
             plans={plans}
             loading={plansLoading}
             onLoad={handleLoad}
-            onDelete={handleDelete}
-            onRename={handleRename}
+            onDelete={isViewer ? null : handleDelete}
+            onRename={isViewer ? null : handleRename}
           />
         </>
       )}

@@ -207,7 +207,7 @@ function exportCSV(selected) {
   URL.revokeObjectURL(url)
 }
 
-export default function PurchasingTracker({ parts, onUpdate }) {
+export default function PurchasingTracker({ parts, onUpdate, readOnly = false }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [widths, setWidth] = useColumnWidths('purchasing-column-widths-v2', DEFAULT_WIDTHS)
@@ -372,23 +372,25 @@ export default function PurchasingTracker({ parts, onUpdate }) {
                       <EditableLink value={part.link} onSave={v => onUpdate(part.id, { link: v })} />
                     </td>
                     <td className="px-4 py-2.5 overflow-hidden">
-                      <StatusSelect value={getStatus(part)} onChange={v => onUpdate(part.id, { purchasing_status: v })} />
+                      {readOnly
+                        ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[getStatus(part)]}`}>{getStatus(part)}</span>
+                        : <StatusSelect value={getStatus(part)} onChange={v => onUpdate(part.id, { purchasing_status: v })} />}
                     </td>
                     <td className="px-4 py-2.5 text-center overflow-hidden">
-                      <EditableQty value={part.qty_on_order} onSave={v => onUpdate(part.id, { qty_on_order: v })} />
+                      {readOnly ? part.qty_on_order : <EditableQty value={part.qty_on_order} onSave={v => onUpdate(part.id, { qty_on_order: v })} />}
                     </td>
                     <td className="px-4 py-2.5 overflow-hidden">
-                      <EditableNotes value={part.notes} onSave={v => onUpdate(part.id, { notes: v })} />
+                      {readOnly ? <span className="text-sm text-gray-700">{part.notes || ''}</span> : <EditableNotes value={part.notes} onSave={v => onUpdate(part.id, { notes: v })} />}
                     </td>
                     <td className="px-4 py-2.5 text-center overflow-hidden">
-                      <button
+                      {!readOnly && <button
                         onClick={() => handleReceive(part)}
                         disabled={onOrder <= 0}
                         title={onOrder > 0 ? `Add ${onOrder} to stock and mark Received` : 'No quantity on order'}
                         className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
                         ✓ Receive
-                      </button>
+                      </button>}
                     </td>
                     <td />
                   </tr>

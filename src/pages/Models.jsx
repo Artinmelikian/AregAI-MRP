@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
+import { RoleContext } from '../App'
 import { useRobotModels } from '../hooks/useRobotModels'
 import { useParts } from '../hooks/useParts'
 import BOMEditor from '../components/BOMEditor'
 import AssemblyEditor from '../components/AssemblyEditor'
 
 export default function Models() {
+  const { isViewer } = useContext(RoleContext)
   const { models, loading, addModel, deleteModel } = useRobotModels()
   const { parts, updatePart } = useParts()
   const [selectedId, setSelectedId] = useState(null)
@@ -80,7 +82,7 @@ export default function Models() {
                     >Cancel</button>
                   </div>
                 ) : (
-                  <button
+                  !isViewer && <button
                     onClick={e => { e.stopPropagation(); setDeleteConfirm(model.id) }}
                     className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs ${
                       selectedId === model.id ? 'text-sky-200 hover:text-white' : 'text-gray-300 hover:text-red-500'
@@ -91,7 +93,7 @@ export default function Models() {
             ))
           )}
 
-          {adding ? (
+          {!isViewer && adding ? (
             <div className="bg-sky-50 rounded-lg border border-sky-300 p-3 space-y-2">
               <input
                 autoFocus
@@ -114,7 +116,7 @@ export default function Models() {
               </div>
             </div>
           ) : (
-            <button
+            !isViewer && <button
               onClick={() => setAdding(true)}
               className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-400 hover:border-sky-400 hover:text-sky-600 transition-colors"
             >
@@ -153,7 +155,7 @@ export default function Models() {
 
           {/* Tab content */}
           {activeTab === 'bom' || !selectedModel ? (
-            <BOMEditor model={selectedModel} allParts={parts} onUpdatePart={updatePart} />
+            <BOMEditor model={selectedModel} allParts={parts} onUpdatePart={updatePart} readOnly={isViewer} />
           ) : (
             <AssemblyEditor model={selectedModel} />
           )}

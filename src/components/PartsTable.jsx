@@ -168,7 +168,7 @@ function renderCell(col, part, onUpdate) {
   )
 }
 
-export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
+export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly = false }) {
   const [adding, setAdding] = useState(false)
   const [newPart, setNewPart] = useState({ name: '', description: '', stock_level: 0, reorder_threshold: 0, lead_time_days: 0, unit: 'pcs' })
   const [deleteConfirm, setDeleteConfirm] = useState(null)
@@ -232,12 +232,14 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
             placeholder="Search name or description…"
             className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-64"
           />
-          <button
-            onClick={() => setAdding(true)}
-            className="px-3 py-1.5 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 transition-colors whitespace-nowrap"
-          >
-            + Add Part
-          </button>
+          {!readOnly && (
+            <button
+              onClick={() => setAdding(true)}
+              className="px-3 py-1.5 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 transition-colors whitespace-nowrap"
+            >
+              + Add Part
+            </button>
+          )}
         </div>
       </div>
 
@@ -315,18 +317,20 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd }) {
               <tr key={part.id} className="hover:bg-gray-50 transition-colors">
                 {columns.map(col => (
                   <td key={col.key} className={`px-4 py-2.5 overflow-hidden ${col.type === 'number' ? 'text-center' : ''}`}>
-                    {renderCell(col, part, onUpdate)}
+                    {readOnly
+                      ? <span className="text-sm text-gray-700 truncate block">{part[col.key] ?? ''}</span>
+                      : renderCell(col, part, onUpdate)}
                   </td>
                 ))}
                 <td className="px-4 py-2.5 text-right">
-                  {deleteConfirm === part.id ? (
+                  {!readOnly && (deleteConfirm === part.id ? (
                     <span className="space-x-2">
                       <button onClick={() => { onDelete(part.id); setDeleteConfirm(null) }} className="text-red-600 hover:text-red-800 font-medium text-xs">Confirm</button>
                       <button onClick={() => setDeleteConfirm(null)} className="text-gray-400 hover:text-gray-600 text-xs">Cancel</button>
                     </span>
                   ) : (
                     <button onClick={() => setDeleteConfirm(part.id)} className="text-gray-300 hover:text-red-500 transition-colors">✕</button>
-                  )}
+                  ))}
                 </td>
                 <td />
               </tr>

@@ -1,7 +1,10 @@
+import { useContext } from 'react'
+import { RoleContext } from '../App'
 import { useParts } from '../hooks/useParts'
 import PurchasingTracker from '../components/PurchasingTracker'
 
 export default function Purchasing() {
+  const { isViewer } = useContext(RoleContext)
   const { parts, loading, updatePart } = useParts()
 
   return (
@@ -16,7 +19,7 @@ export default function Purchasing() {
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">Loading parts…</div>
       ) : (
-        <PurchasingTracker parts={parts} onUpdate={updatePart} />
+        <PurchasingTracker parts={parts} onUpdate={updatePart} readOnly={isViewer} />
       )}
     </div>
   )
