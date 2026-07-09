@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
+import LogisticsHistoryModal from './LogisticsHistoryModal'
 
 const STATUS_OPTIONS = [
   'Order Received',
@@ -184,6 +185,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
   const [widths, setWidth] = useColumnWidths('logistics-column-widths-v2', DEFAULT_WIDTHS)
   const [search, setSearch] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [historyShipment, setHistoryShipment] = useState(null)
 
   const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, '')
   const filtered = search.trim()
@@ -197,7 +199,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
 
   const handleAdd = () => onAdd({ product_name: 'New Shipment', status: 'Order Received' })
 
-  const totalCols = COLS.length + 2 // + actions + spacer
+  const totalCols = COLS.length + 3 // + history + delete + spacer
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -234,6 +236,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
           <colgroup>
             {COLS.map(c => <col key={c.key} style={{ width: widths[c.key] ?? c.w }} />)}
             <col style={{ width: 80 }} />
+            <col style={{ width: 80 }} />
             <col />
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
@@ -244,7 +247,8 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
                   <ResizeHandle width={widths[c.key] ?? c.w} onResize={w => setWidth(c.key, w)} />
                 </th>
               ))}
-              <th className="px-4 py-3 font-medium text-right">Actions</th>
+              <th className="px-4 py-3 font-medium text-center">History</th>
+              <th className="px-4 py-3 font-medium text-right">Delete</th>
               <th />
             </tr>
           </thead>
@@ -273,6 +277,13 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
                     )}
                   </td>
                 ))}
+                <td className="px-4 py-2.5 text-center">
+                  <button
+                    onClick={() => setHistoryShipment(s)}
+                    className="text-sky-500 hover:text-sky-700 text-sm transition-colors"
+                    title="View change history"
+                  >🕐</button>
+                </td>
                 <td className="px-4 py-2.5 text-right whitespace-nowrap">
                   {deleteConfirm === s.id ? (
                     <span className="space-x-2">
@@ -297,6 +308,13 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
           </tbody>
         </table>
       </div>
+
+      {historyShipment && (
+        <LogisticsHistoryModal
+          shipment={historyShipment}
+          onClose={() => setHistoryShipment(null)}
+        />
+      )}
     </div>
   )
 }

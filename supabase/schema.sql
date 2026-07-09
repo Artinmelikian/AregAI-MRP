@@ -131,6 +131,52 @@ alter table logistics add constraint logistics_status_check
 alter table logistics enable row level security;
 create policy "authenticated_all" on logistics for all to authenticated using (true) with check (true);
 
+-- Logistics change history (auto-populated by trigger)
+create table if not exists logistics_history (
+  id uuid primary key default gen_random_uuid(),
+  logistics_id uuid not null references logistics(id) on delete cascade,
+  field_name text not null,
+  old_value text,
+  new_value text,
+  changed_by text,
+  changed_at timestamptz default now()
+);
+
+alter table logistics_history enable row level security;
+create policy "authenticated_all" on logistics_history for all to authenticated using (true) with check (true);
+
+-- Trigger function: log every changed field to logistics_history
+create or replace function log_logistics_changes()
+returns trigger language plpgsql security definer as $$
+declare
+  excluded_cols text[] := array['id','created_at','updated_at'];
+  col text;
+  old_val text;
+  new_val text;
+begin
+  foreach col in array (
+    select array_agg(column_name::text)
+    from information_schema.columns
+    where table_name = 'logistics'
+      and table_schema = 'public'
+      and column_name <> all(excluded_cols)
+  ) loop
+    old_val := (to_jsonb(OLD) ->> col);
+    new_val := (to_jsonb(NEW) ->> col);
+    if old_val is distinct from new_val then
+      insert into logistics_history (logistics_id, field_name, old_value, new_value, changed_by)
+      values (NEW.id, col, old_val, new_val, auth.email());
+    end if;
+  end loop;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists logistics_audit on logistics;
+create trigger logistics_audit
+  after update on logistics
+  for each row execute function log_logistics_changes();
+
 -- ============================================================
 -- Seed Data
 -- ============================================================
