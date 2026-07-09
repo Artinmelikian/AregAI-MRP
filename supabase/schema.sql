@@ -131,6 +131,21 @@ alter table logistics add constraint logistics_status_check
 alter table logistics enable row level security;
 create policy "authenticated_all" on logistics for all to authenticated using (true) with check (true);
 
+-- Logistics file attachments
+create table if not exists logistics_attachments (
+  id uuid primary key default gen_random_uuid(),
+  logistics_id uuid not null references logistics(id) on delete cascade,
+  file_name text not null,
+  file_path text not null,
+  file_size bigint,
+  mime_type text,
+  uploaded_by text,
+  created_at timestamptz default now()
+);
+
+alter table logistics_attachments enable row level security;
+create policy "authenticated_all" on logistics_attachments for all to authenticated using (true) with check (true);
+
 -- Logistics change history (auto-populated by trigger)
 create table if not exists logistics_history (
   id uuid primary key default gen_random_uuid(),

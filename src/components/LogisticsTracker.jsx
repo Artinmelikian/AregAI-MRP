@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
 import LogisticsHistoryModal from './LogisticsHistoryModal'
+import LogisticsAttachmentsModal from './LogisticsAttachmentsModal'
+import { supabase } from '../lib/supabase'
 
 const STATUS_OPTIONS = [
   'Order Received',
@@ -186,6 +188,26 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
   const [search, setSearch] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [historyShipment, setHistoryShipment] = useState(null)
+  const [attachmentsShipment, setAttachmentsShipment] = useState(null)
+  const [attachmentCounts, setAttachmentCounts] = useState({})
+
+  useEffect(() => {
+    if (!shipments.length) return
+    supabase
+      .from('logistics_attachments')
+      .select('logistics_id')
+      .in('logistics_id', shipments.map(s => s.id))
+      .then(({ data }) => {
+        if (!data) return
+        const counts = {}
+        data.forEach(r => { counts[r.logistics_id] = (counts[r.logistics_id] ?? 0) + 1 })
+        setAttachmentCounts(counts)
+      })
+  }, [shipments])
+
+  const handleAttachmentCountChange = (id, count) => {
+    setAttachmentCounts(prev => ({ ...prev, [id]: count }))
+  }
 
   const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, '')
   const filtered = search.trim()
@@ -199,7 +221,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
 
   const handleAdd = () => onAdd({ product_name: 'New Shipment', status: 'Order Received' })
 
-  const totalCols = COLS.length + 3 // + history + delete + spacer
+  const totalCols = COLS.length + 4 // + attachments + history + delete + spacer
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -235,6 +257,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
         <table className="text-sm" style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
           <colgroup>
             {COLS.map(c => <col key={c.key} style={{ width: widths[c.key] ?? c.w }} />)}
+            <col style={{ width: 90 }} />
             <col style={{ width: 80 }} />
             <col style={{ width: 80 }} />
             <col />
@@ -247,6 +270,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
                   <ResizeHandle width={widths[c.key] ?? c.w} onResize={w => setWidth(c.key, w)} />
                 </th>
               ))}
+              <th className="px-4 py-3 font-medium text-center">Files</th>
               <th className="px-4 py-3 font-medium text-center">History</th>
               <th className="px-4 py-3 font-medium text-right">Delete</th>
               <th />
@@ -279,6 +303,20 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
                 ))}
                 <td className="px-4 py-2.5 text-center">
                   <button
+                    onClick={() => setAttachmentsShipment(s)}
+                    className="relative inline-flex items-center gap-1 text-gray-400 hover:text-sky-600 transition-colors text-sm"
+                    title="Attachments"
+                  >
+                    📎
+                    {attachmentCounts[s.id] > 0 && (
+                      <span className="absolute -top-1.5 -right-2 bg-sky-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                        {attachmentCounts[s.id]}
+                      </span>
+                    )}
+                  </button>
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  <button
                     onClick={() => setHistoryShipment(s)}
                     className="text-sky-500 hover:text-sky-700 text-sm transition-colors"
                     title="View change history"
@@ -308,6 +346,14 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
           </tbody>
         </table>
       </div>
+
+      {attachmentsShipment && (
+        <LogisticsAttachmentsModal
+          shipment={attachmentsShipment}
+          onClose={() => setAttachmentsShipment(null)}
+          onCountChange={handleAttachmentCountChange}
+        />
+      )}
 
       {historyShipment && (
         <LogisticsHistoryModal
