@@ -42,6 +42,7 @@ const COLS = [
   { key: 'quantity',                    label: 'Quantity',                      type: 'number',  w: 90  },
   { key: 'supplier',                    label: 'Supplier',                      type: 'text',    w: 150 },
   { key: 'unit_price',                  label: 'Unit Price',                    type: 'number',  w: 110 },
+  { key: 'invoice_number',              label: 'Invoice Number',                type: 'text',    w: 140 },
   { key: 'invoice_amount',              label: 'Invoice Amount',                type: 'number',  w: 130 },
   { key: 'currency',                    label: 'Currency',                      type: 'select',  w: 100, options: CURRENCIES },
   { key: 'order_date',                  label: 'Order Date',                    type: 'date',    w: 130 },

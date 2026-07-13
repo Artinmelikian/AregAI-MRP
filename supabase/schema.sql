@@ -99,6 +99,7 @@ create table if not exists logistics (
   quantity numeric,
   supplier text,
   unit_price numeric,
+  invoice_number text,
   invoice_amount numeric,
   currency text,
   order_date date,

@@ -8,6 +8,7 @@ const FIELD_LABELS = {
   quantity:                     'Quantity',
   supplier:                     'Supplier',
   unit_price:                   'Unit Price',
+  invoice_number:               'Invoice Number',
   invoice_amount:               'Invoice Amount',
   currency:                     'Currency',
   order_date:                   'Order Date',
