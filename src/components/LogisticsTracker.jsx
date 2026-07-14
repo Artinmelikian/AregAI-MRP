@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
 import LogisticsHistoryModal from './LogisticsHistoryModal'
@@ -64,6 +64,26 @@ const COLS = [
 ]
 
 const DEFAULT_WIDTHS = Object.fromEntries(COLS.map(c => [c.key, c.w]))
+
+const COL_ORDER_KEY = 'logistics-column-order'
+
+function loadColOrder() {
+  try {
+    const saved = localStorage.getItem(COL_ORDER_KEY)
+    if (saved) {
+      const keys = JSON.parse(saved)
+      const allKeys = COLS.map(c => c.key)
+      const ordered = keys.filter(k => allKeys.includes(k))
+      const missing = allKeys.filter(k => !ordered.includes(k))
+      return [...ordered, ...missing]
+    }
+  } catch {}
+  return COLS.map(c => c.key)
+}
+
+function saveColOrder(keys) {
+  localStorage.setItem(COL_ORDER_KEY, JSON.stringify(keys))
+}
 
 function EditableCell({ value, type = 'text', placeholder = '', onSave }) {
   const [editing, setEditing] = useState(false)
@@ -191,6 +211,27 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
   const [historyShipment, setHistoryShipment] = useState(null)
   const [attachmentsShipment, setAttachmentsShipment] = useState(null)
   const [attachmentCounts, setAttachmentCounts] = useState({})
+  const [colOrder, setColOrder] = useState(loadColOrder)
+  const [dragOver, setDragOver] = useState(null)
+  const [resizingCol, setResizingCol] = useState(null)
+  const dragKey = useRef(null)
+
+  const columns = colOrder.map(k => COLS.find(c => c.key === k)).filter(Boolean)
+
+  const handleDragStart = (key) => { dragKey.current = key }
+  const handleDragOver = (e, key) => { e.preventDefault(); setDragOver(key) }
+  const handleDrop = (targetKey) => {
+    if (!dragKey.current || dragKey.current === targetKey) { setDragOver(null); return }
+    const order = [...colOrder]
+    const from = order.indexOf(dragKey.current)
+    const to = order.indexOf(targetKey)
+    order.splice(from, 1)
+    order.splice(to, 0, dragKey.current)
+    setColOrder(order)
+    saveColOrder(order)
+    dragKey.current = null
+    setDragOver(null)
+  }
 
   useEffect(() => {
     if (!shipments.length) return
@@ -257,7 +298,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
       <div className="overflow-auto max-h-[70vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
           <colgroup>
-            {COLS.map(c => <col key={c.key} style={{ width: widths[c.key] ?? c.w }} />)}
+            {columns.map(c => <col key={c.key} style={{ width: widths[c.key] ?? c.w }} />)}
             <col style={{ width: 90 }} />
             <col style={{ width: 80 }} />
             <col style={{ width: 80 }} />
@@ -265,10 +306,28 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
-              {COLS.map(c => (
-                <th key={c.key} className="relative px-4 py-3 font-medium text-left whitespace-nowrap">
-                  {c.label}
-                  <ResizeHandle width={widths[c.key] ?? c.w} onResize={w => setWidth(c.key, w)} />
+              {columns.map(c => (
+                <th
+                  key={c.key}
+                  draggable={!resizingCol}
+                  onDragStart={() => handleDragStart(c.key)}
+                  onDragOver={e => handleDragOver(e, c.key)}
+                  onDrop={() => handleDrop(c.key)}
+                  onDragLeave={() => setDragOver(null)}
+                  className={`relative px-4 py-3 font-medium text-left whitespace-nowrap cursor-grab select-none transition-colors ${
+                    dragOver === c.key ? 'bg-sky-100 text-sky-700' : 'hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-gray-300 shrink-0">⠿</span>
+                    <span className="truncate">{c.label}</span>
+                  </span>
+                  <ResizeHandle
+                    width={widths[c.key] ?? c.w}
+                    onResize={w => setWidth(c.key, w)}
+                    onStart={() => setResizingCol(c.key)}
+                    onEnd={() => setResizingCol(null)}
+                  />
                 </th>
               ))}
               <th className="px-4 py-3 font-medium text-center">Files</th>
@@ -281,7 +340,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
             {/* Data rows */}
             {filtered.map(s => (
               <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                {COLS.map(c => (
+                {columns.map(c => (
                   <td key={c.key} className="px-4 py-2.5 overflow-hidden">
                     {c.type === 'status' ? (
                       <StatusCell value={s.status} onChange={v => onUpdate(s.id, { status: v })} />
