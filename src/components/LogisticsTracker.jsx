@@ -264,6 +264,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
   const handleAdd = () => onAdd({ product_name: 'New Shipment', status: 'Order Received' })
 
   const totalCols = COLS.length + 4 // + attachments + history + delete + spacer
+  const tableWidth = columns.reduce((sum, c) => sum + (widths[c.key] ?? c.w), 0) + 90 + 80 + 80
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -296,7 +297,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
 
       {/* Table */}
       <div className="overflow-auto max-h-[70vh]">
-        <table className="text-sm" style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
+        <table className="text-sm" style={{ tableLayout: 'fixed', width: tableWidth, minWidth: '100%' }}>
           <colgroup>
             {columns.map(c => <col key={c.key} style={{ width: widths[c.key] ?? c.w }} />)}
             <col style={{ width: 90 }} />
