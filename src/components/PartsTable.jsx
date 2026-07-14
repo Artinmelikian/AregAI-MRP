@@ -204,6 +204,9 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
     }
   }
 
+  const [selected, setSelected] = useState(new Set())
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+
   const [search, setSearch] = useState('')
   const normalize = s => (s ?? '').toLowerCase().replace(/\s+/g, '')
   const filteredParts = search.trim()
@@ -212,6 +215,21 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
         normalize(p.description).includes(normalize(search))
       )
     : parts
+
+  const allFilteredSelected = filteredParts.length > 0 && filteredParts.every(p => selected.has(p.id))
+  const toggleOne = (id) => setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  const toggleAll = () => {
+    if (allFilteredSelected) {
+      setSelected(prev => { const next = new Set(prev); filteredParts.forEach(p => next.delete(p.id)); return next })
+    } else {
+      setSelected(prev => new Set([...prev, ...filteredParts.map(p => p.id)]))
+    }
+  }
+  const handleBulkDelete = async () => {
+    await Promise.all([...selected].map(id => onDelete(id)))
+    setSelected(new Set())
+    setBulkDeleteConfirm(false)
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -232,6 +250,22 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
             placeholder="Search name or description…"
             className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-400 w-64"
           />
+          {!readOnly && selected.size > 0 && (
+            bulkDeleteConfirm ? (
+              <span className="flex items-center gap-2">
+                <span className="text-sm text-red-700 font-medium">Delete {selected.size} part{selected.size > 1 ? 's' : ''}?</span>
+                <button onClick={handleBulkDelete} className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">Confirm</button>
+                <button onClick={() => setBulkDeleteConfirm(false)} className="px-3 py-1.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+              </span>
+            ) : (
+              <button
+                onClick={() => setBulkDeleteConfirm(true)}
+                className="px-3 py-1.5 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 border border-red-200 transition-colors whitespace-nowrap"
+              >
+                Delete Selected ({selected.size})
+              </button>
+            )
+          )}
           {!readOnly && (
             <button
               onClick={() => setAdding(true)}
@@ -246,6 +280,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
       <div className="overflow-auto max-h-[65vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
           <colgroup>
+            {!readOnly && <col style={{ width: 40 }} />}
             {columns.map(col => (
               <col key={col.key} style={{ width: widths[col.key] ?? DEFAULT_WIDTHS[col.key] }} />
             ))}
@@ -254,6 +289,17 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
+              {!readOnly && (
+                <th className="px-3 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleAll}
+                    title="Select all visible"
+                    className="cursor-pointer"
+                  />
+                </th>
+              )}
               {columns.map(col => (
                 <th
                   key={col.key}
@@ -285,6 +331,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
           <tbody className="divide-y divide-gray-100">
             {adding && (
               <tr className="bg-sky-50">
+                {!readOnly && <td className="px-3 py-2" />}
                 {columns.map(col => (
                   <td key={col.key} className="px-4 py-2">
                     {col.key === 'link' ? (
@@ -314,7 +361,17 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
               </tr>
             )}
             {filteredParts.map(part => (
-              <tr key={part.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={part.id} className={`transition-colors ${selected.has(part.id) ? 'bg-sky-50' : 'hover:bg-gray-50'}`}>
+                {!readOnly && (
+                  <td className="px-3 py-2.5 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(part.id)}
+                      onChange={() => toggleOne(part.id)}
+                      className="cursor-pointer"
+                    />
+                  </td>
+                )}
                 {columns.map(col => (
                   <td key={col.key} className={`px-4 py-2.5 overflow-hidden ${col.type === 'number' ? 'text-center' : ''}`}>
                     {readOnly
@@ -336,7 +393,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
               </tr>
             ))}
             {!adding && filteredParts.length === 0 && (
-              <tr><td colSpan={columns.length + 2} className="px-4 py-8 text-center text-gray-400">
+              <tr><td colSpan={columns.length + (readOnly ? 2 : 3)} className="px-4 py-8 text-center text-gray-400">
                 {search ? `No parts match "${search}".` : 'No parts yet. Click "Add Part" to get started.'}
               </td></tr>
             )}
