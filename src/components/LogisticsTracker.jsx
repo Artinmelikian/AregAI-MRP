@@ -407,6 +407,30 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
               </tr>
             )}
           </tbody>
+          {filtered.length > 0 && (() => {
+            const TOTAL_COLS = new Set(['invoice_amount', 'transportation_cost', 'custom_clearance_cost', 'expertise_service_fee'])
+            const totals = {}
+            TOTAL_COLS.forEach(k => {
+              totals[k] = filtered.reduce((sum, s) => sum + (Number(s[k]) || 0), 0)
+            })
+            return (
+              <tfoot>
+                <tr className="bg-gray-50 border-t-2 border-gray-300 font-semibold text-sm">
+                  {columns.map((c, i) => (
+                    <td key={c.key} className="px-4 py-2.5 overflow-hidden">
+                      {i === 0 && <span className="text-xs uppercase tracking-wider text-gray-500">Total</span>}
+                      {TOTAL_COLS.has(c.key) && (
+                        <span className="text-gray-800 tabular-nums">
+                          {totals[c.key].toLocaleString()}
+                        </span>
+                      )}
+                    </td>
+                  ))}
+                  <td /><td /><td /><td />
+                </tr>
+              </tfoot>
+            )
+          })()}
         </table>
       </div>
 
