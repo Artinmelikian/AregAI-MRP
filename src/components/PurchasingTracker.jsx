@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
 
@@ -26,6 +26,18 @@ const STATUS_COLORS = {
   'Received': 'bg-green-100 text-green-700',
 }
 
+const ALL_COLUMNS = [
+  { key: 'name',              label: 'Part Name',         align: 'text-left'   },
+  { key: 'description',       label: 'Description',       align: 'text-left'   },
+  { key: 'stock_level',       label: 'Stock',             align: 'text-center' },
+  { key: 'reorder_threshold', label: 'Reorder At',        align: 'text-center' },
+  { key: 'lead_time_days',    label: 'Lead Time',         align: 'text-center' },
+  { key: 'link',              label: 'Model / Link',      align: 'text-left'   },
+  { key: 'status',            label: 'Purchasing Status', align: 'text-left'   },
+  { key: 'qty_on_order',      label: 'Qty Ordered',       align: 'text-center' },
+  { key: 'notes',             label: 'Notes',             align: 'text-left'   },
+]
+
 const DEFAULT_WIDTHS = {
   name: 130,
   description: 110,
@@ -37,6 +49,26 @@ const DEFAULT_WIDTHS = {
   qty_on_order: 84,
   notes: 120,
   actions: 84,
+}
+
+const COL_ORDER_KEY = 'purchasing-column-order'
+
+function loadColOrder() {
+  try {
+    const saved = localStorage.getItem(COL_ORDER_KEY)
+    if (saved) {
+      const keys = JSON.parse(saved)
+      const allKeys = ALL_COLUMNS.map(c => c.key)
+      const ordered = keys.filter(k => allKeys.includes(k))
+      const missing = allKeys.filter(k => !ordered.includes(k))
+      return [...ordered, ...missing]
+    }
+  } catch {}
+  return ALL_COLUMNS.map(c => c.key)
+}
+
+function saveColOrder(keys) {
+  localStorage.setItem(COL_ORDER_KEY, JSON.stringify(keys))
 }
 
 function EditableQty({ value, onSave }) {
@@ -212,6 +244,27 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
   const [search, setSearch] = useState('')
   const [widths, setWidth] = useColumnWidths('purchasing-column-widths-v2', DEFAULT_WIDTHS)
   const [selected, setSelected] = useState(new Set())
+  const [colOrder, setColOrder] = useState(loadColOrder)
+  const [dragOver, setDragOver] = useState(null)
+  const [resizingCol, setResizingCol] = useState(null)
+  const dragKey = useRef(null)
+
+  const columns = colOrder.map(k => ALL_COLUMNS.find(c => c.key === k)).filter(Boolean)
+
+  const handleDragStart = (key) => { dragKey.current = key }
+  const handleDragOver = (e, key) => { e.preventDefault(); setDragOver(key) }
+  const handleDrop = (targetKey) => {
+    if (!dragKey.current || dragKey.current === targetKey) { setDragOver(null); return }
+    const order = [...colOrder]
+    const from = order.indexOf(dragKey.current)
+    const to = order.indexOf(targetKey)
+    order.splice(from, 1)
+    order.splice(to, 0, dragKey.current)
+    setColOrder(order)
+    saveColOrder(order)
+    dragKey.current = null
+    setDragOver(null)
+  }
 
   const getStatus = (part) => part.purchasing_status || 'To be Sourced'
 
@@ -307,15 +360,7 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
             <colgroup>
               <col style={{ width: 40 }} />
-              <col style={{ width: widths.name }} />
-              <col style={{ width: widths.description }} />
-              <col style={{ width: widths.stock_level }} />
-              <col style={{ width: widths.reorder_threshold }} />
-              <col style={{ width: widths.lead_time_days }} />
-              <col style={{ width: widths.link }} />
-              <col style={{ width: widths.status }} />
-              <col style={{ width: widths.qty_on_order }} />
-              <col style={{ width: widths.notes }} />
+              {columns.map(c => <col key={c.key} style={{ width: widths[c.key] }} />)}
               <col style={{ width: widths.actions }} />
               <col />
             </colgroup>
@@ -330,20 +375,28 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
                     className="cursor-pointer"
                   />
                 </th>
-                {[
-                  ['name', 'Part Name', 'text-left'],
-                  ['description', 'Description', 'text-left'],
-                  ['stock_level', 'Stock', 'text-center'],
-                  ['reorder_threshold', 'Reorder At', 'text-center'],
-                  ['lead_time_days', 'Lead Time', 'text-center'],
-                  ['link', 'Model / Link', 'text-left'],
-                  ['status', 'Purchasing Status', 'text-left'],
-                  ['qty_on_order', 'Qty Ordered', 'text-center'],
-                  ['notes', 'Notes', 'text-left'],
-                ].map(([key, label, align]) => (
-                  <th key={key} className={`relative px-4 py-3 font-medium ${align}`}>
-                    <span className="truncate block pr-2">{label}</span>
-                    <ResizeHandle width={widths[key]} onResize={w => setWidth(key, w)} />
+                {columns.map(c => (
+                  <th
+                    key={c.key}
+                    draggable={!resizingCol}
+                    onDragStart={() => handleDragStart(c.key)}
+                    onDragOver={e => handleDragOver(e, c.key)}
+                    onDrop={() => handleDrop(c.key)}
+                    onDragLeave={() => setDragOver(null)}
+                    className={`relative px-4 py-3 font-medium cursor-grab select-none transition-colors ${c.align} ${
+                      dragOver === c.key ? 'bg-sky-100 text-sky-700' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 overflow-hidden">
+                      <span className="text-gray-300 shrink-0">⠿</span>
+                      <span className="truncate">{c.label}</span>
+                    </span>
+                    <ResizeHandle
+                      width={widths[c.key]}
+                      onResize={w => setWidth(c.key, w)}
+                      onStart={() => setResizingCol(c.key)}
+                      onEnd={() => setResizingCol(null)}
+                    />
                   </th>
                 ))}
                 <th className="relative px-4 py-3 font-medium text-center">Receive</th>
@@ -363,25 +416,28 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
                         className="cursor-pointer"
                       />
                     </td>
-                    <td className="px-4 py-2.5 font-medium overflow-hidden truncate">{part.name}</td>
-                    <td className="px-4 py-2.5 text-gray-500 overflow-hidden truncate">{part.description || '—'}</td>
-                    <td className="px-4 py-2.5 text-center tabular-nums">{part.stock_level}</td>
-                    <td className="px-4 py-2.5 text-center tabular-nums text-gray-500">{part.reorder_threshold}</td>
-                    <td className="px-4 py-2.5 text-center tabular-nums text-gray-500">{part.lead_time_days}d</td>
-                    <td className="px-4 py-2.5 overflow-hidden">
-                      <EditableLink value={part.link} onSave={v => onUpdate(part.id, { link: v })} />
-                    </td>
-                    <td className="px-4 py-2.5 overflow-hidden">
-                      {readOnly
-                        ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[getStatus(part)]}`}>{getStatus(part)}</span>
-                        : <StatusSelect value={getStatus(part)} onChange={v => onUpdate(part.id, { purchasing_status: v })} />}
-                    </td>
-                    <td className="px-4 py-2.5 text-center overflow-hidden">
-                      {readOnly ? part.qty_on_order : <EditableQty value={part.qty_on_order} onSave={v => onUpdate(part.id, { qty_on_order: v })} />}
-                    </td>
-                    <td className="px-4 py-2.5 overflow-hidden">
-                      {readOnly ? <span className="text-sm text-gray-700">{part.notes || ''}</span> : <EditableNotes value={part.notes} onSave={v => onUpdate(part.id, { notes: v })} />}
-                    </td>
+                    {columns.map(c => (
+                      <td key={c.key} className={`px-4 py-2.5 overflow-hidden ${c.align === 'text-center' ? 'text-center' : ''}`}>
+                        {c.key === 'name' && <span className="font-medium truncate block">{part.name}</span>}
+                        {c.key === 'description' && <span className="text-gray-500 truncate block">{part.description || '—'}</span>}
+                        {c.key === 'stock_level' && <span className="tabular-nums">{part.stock_level}</span>}
+                        {c.key === 'reorder_threshold' && <span className="tabular-nums text-gray-500">{part.reorder_threshold}</span>}
+                        {c.key === 'lead_time_days' && <span className="tabular-nums text-gray-500">{part.lead_time_days}d</span>}
+                        {c.key === 'link' && <EditableLink value={part.link} onSave={v => onUpdate(part.id, { link: v })} />}
+                        {c.key === 'status' && (readOnly
+                          ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[getStatus(part)]}`}>{getStatus(part)}</span>
+                          : <StatusSelect value={getStatus(part)} onChange={v => onUpdate(part.id, { purchasing_status: v })} />
+                        )}
+                        {c.key === 'qty_on_order' && (readOnly
+                          ? part.qty_on_order
+                          : <EditableQty value={part.qty_on_order} onSave={v => onUpdate(part.id, { qty_on_order: v })} />
+                        )}
+                        {c.key === 'notes' && (readOnly
+                          ? <span className="text-sm text-gray-700">{part.notes || ''}</span>
+                          : <EditableNotes value={part.notes} onSave={v => onUpdate(part.id, { notes: v })} />
+                        )}
+                      </td>
+                    ))}
                     <td className="px-4 py-2.5 text-center overflow-hidden">
                       {!readOnly && <button
                         onClick={() => handleReceive(part)}
@@ -397,7 +453,7 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={12} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
+                <tr><td colSpan={columns.length + 3} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
               )}
             </tbody>
           </table>
