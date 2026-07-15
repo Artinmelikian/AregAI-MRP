@@ -109,7 +109,9 @@ function EditableCell({ value, type = 'text', placeholder = '', onSave }) {
     )
   }
 
-  const display = value !== null && value !== undefined && value !== '' ? String(value) : null
+  const display = value !== null && value !== undefined && value !== ''
+    ? (type === 'number' ? Number(value).toLocaleString() : String(value))
+    : null
 
   return (
     <span
