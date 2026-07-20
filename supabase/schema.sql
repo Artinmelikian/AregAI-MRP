@@ -20,6 +20,7 @@ create table if not exists parts (
   lead_time_days integer not null default 0,
   reorder_threshold integer not null default 0,
   unit text not null default 'pcs',
+  arrival_date date,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

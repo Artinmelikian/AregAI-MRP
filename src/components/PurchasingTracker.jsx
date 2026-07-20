@@ -35,6 +35,7 @@ const ALL_COLUMNS = [
   { key: 'link',              label: 'Model / Link',      align: 'text-left'   },
   { key: 'status',            label: 'Purchasing Status', align: 'text-left'   },
   { key: 'qty_on_order',      label: 'Qty Ordered',       align: 'text-center' },
+  { key: 'arrival_date',      label: 'Arrival Date',      align: 'text-left'   },
   { key: 'notes',             label: 'Notes',             align: 'text-left'   },
 ]
 
@@ -47,6 +48,7 @@ const DEFAULT_WIDTHS = {
   link: 110,
   status: 158,
   qty_on_order: 84,
+  arrival_date: 130,
   notes: 120,
   actions: 84,
 }
@@ -214,6 +216,39 @@ function EditableNotes({ value, onSave }) {
       title={value || undefined}
     >
       {value || '+ Add note'}
+    </span>
+  )
+}
+
+function EditableDate({ value, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ?? '')
+
+  const commit = () => {
+    setEditing(false)
+    if (draft !== (value ?? '')) onSave(draft || null)
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="date"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false) }}
+        className="w-full border border-sky-400 rounded px-2 py-1 text-sm outline-none"
+      />
+    )
+  }
+
+  return (
+    <span
+      onClick={() => { setDraft(value ?? ''); setEditing(true) }}
+      className={`block cursor-pointer rounded px-2 py-1 -mx-2 text-sm truncate ${value ? 'text-gray-700 hover:bg-sky-50' : 'text-gray-300 hover:text-sky-500'}`}
+    >
+      {value || '+ Add date'}
     </span>
   )
 }
@@ -431,6 +466,10 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
                         {c.key === 'qty_on_order' && (readOnly
                           ? part.qty_on_order
                           : <EditableQty value={part.qty_on_order} onSave={v => onUpdate(part.id, { qty_on_order: v })} />
+                        )}
+                        {c.key === 'arrival_date' && (readOnly
+                          ? <span className="text-sm text-gray-700">{part.arrival_date || ''}</span>
+                          : <EditableDate value={part.arrival_date} onSave={v => onUpdate(part.id, { arrival_date: v })} />
                         )}
                         {c.key === 'notes' && (readOnly
                           ? <span className="text-sm text-gray-700">{part.notes || ''}</span>
