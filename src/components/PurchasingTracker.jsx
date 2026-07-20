@@ -3,6 +3,7 @@ import { useColumnWidths } from '../hooks/useColumnWidths'
 import ResizeHandle from './ResizeHandle'
 
 export const STATUS_OPTIONS = [
+  '-',
   'In-house Build',
   'Local Store',
   'To be Sourced',
