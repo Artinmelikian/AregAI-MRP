@@ -382,6 +382,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart, readOnly = fa
         <div className="overflow-auto max-h-[65vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
           <colgroup>
+            <col style={{ width: 44 }} />
             <col style={{ width: 40 }} />
             <col style={{ width: widths.part }} />
             <col style={{ width: widths.description }} />
@@ -394,6 +395,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart, readOnly = fa
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
+              <th className="px-3 py-3 text-center text-gray-400 font-medium">#</th>
               {!readOnly && <th className="px-3 py-3 text-center">
                 <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} className="cursor-pointer" />
               </th>}
@@ -418,8 +420,9 @@ export default function BOMEditor({ model, allParts, onUpdatePart, readOnly = fa
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredItems.map(item => (
+            {filteredItems.map((item, i) => (
               <tr key={item.id} className={`transition-colors ${selected.has(item.id) ? 'bg-sky-50' : 'hover:bg-gray-50'}`}>
+                <td className="px-3 py-3 text-center text-xs text-gray-400 tabular-nums select-none">{i + 1}</td>
                 {!readOnly && <td className="px-3 py-3 text-center">
                   <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleOne(item.id)} className="cursor-pointer" />
                 </td>}
@@ -457,7 +460,7 @@ export default function BOMEditor({ model, allParts, onUpdatePart, readOnly = fa
               </tr>
             ))}
             {filteredItems.length === 0 && (
-              <tr><td colSpan={9} className="px-6 py-8 text-center text-gray-400">
+              <tr><td colSpan={10} className="px-6 py-8 text-center text-gray-400">
                 {search ? `No parts match "${search}".` : 'No parts in BOM yet.'}
               </td></tr>
             )}

@@ -149,6 +149,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
         <div className="overflow-auto max-h-[50vh]">
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
+              <col style={{ width: 44 }} />
               <col style={{ width: assemblyWidths.model }} />
               <col style={{ width: assemblyWidths.qty }} />
               <col style={{ width: assemblyWidths.mech }} />
@@ -159,6 +160,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
+                <th className="px-3 py-2.5 text-center text-gray-400 font-medium">#</th>
                 {[
                   ['model', 'Model', 'text-left'],
                   ['qty', 'Qty', 'text-center'],
@@ -176,10 +178,11 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {Object.values(assemblyByModel).map(({ modelName, qty, mechDays, elecDays, totalDays }) => {
+              {Object.values(assemblyByModel).map(({ modelName, qty, mechDays, elecDays, totalDays }, i) => {
                 const isBottleneck = totalDays === maxAssemblyDays && maxAssemblyDays > 0
                 return (
                   <tr key={modelName} className={isBottleneck ? 'bg-orange-50' : ''}>
+                    <td className="px-3 py-2.5 text-center text-xs text-gray-400 tabular-nums select-none">{i + 1}</td>
                     <td className="px-4 py-2.5 font-medium overflow-hidden truncate">
                       {modelName}
                       {isBottleneck && maxAssemblyDays > 0 && (
@@ -200,6 +203,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
             </tbody>
             <tfoot className="border-t-2 border-gray-200 bg-gray-50">
               <tr>
+                <td />
                 <td colSpan={4} className="px-4 py-2.5 text-sm text-gray-500">
                   {hasAssemblyData
                     ? `Planning buffer: ${maxAssemblyDays.toFixed(1)} days (longest model)`
@@ -239,6 +243,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
         <div className="overflow-auto max-h-[60vh]">
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
+              <col style={{ width: 44 }} />
               <col style={{ width: partsWidths.part }} />
               <col style={{ width: partsWidths.required }} />
               <col style={{ width: partsWidths.inStock }} />
@@ -250,6 +255,7 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
               <tr>
+                <th className="px-3 py-3 text-center text-gray-400 font-medium">#</th>
                 {[
                   ['part', 'Part', 'text-left'],
                   ['required', 'Required', 'text-center'],
@@ -268,11 +274,12 @@ export default function PlannerResults({ results, onReset, currentPlan, onSave, 
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {rows.map(row => (
+              {rows.map((row, i) => (
                 <tr
                   key={row.partId}
                   className={row.shortage > 0 ? 'bg-red-50' : 'bg-green-50'}
                 >
+                  <td className="px-3 py-3 text-center text-xs text-gray-400 tabular-nums select-none">{i + 1}</td>
                   <td className="px-4 py-3 font-medium overflow-hidden truncate">
                     {row.partName}
                     <span className="text-gray-400 text-xs ml-1">({row.unit})</span>

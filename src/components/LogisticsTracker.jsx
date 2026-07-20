@@ -265,8 +265,8 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
 
   const handleAdd = () => onAdd({ product_name: 'New Shipment', status: 'Order Received' })
 
-  const totalCols = COLS.length + 4 // + attachments + history + delete + spacer
-  const tableWidth = columns.reduce((sum, c) => sum + (widths[c.key] ?? c.w), 0) + 90 + 80 + 80
+  const totalCols = COLS.length + 5 // + row# + attachments + history + delete + spacer
+  const tableWidth = 44 + columns.reduce((sum, c) => sum + (widths[c.key] ?? c.w), 0) + 90 + 80 + 80
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -301,6 +301,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
       <div className="overflow-auto max-h-[70vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: tableWidth, minWidth: '100%' }}>
           <colgroup>
+            <col style={{ width: 44 }} />
             {columns.map(c => <col key={c.key} style={{ width: widths[c.key] ?? c.w }} />)}
             <col style={{ width: 90 }} />
             <col style={{ width: 80 }} />
@@ -309,6 +310,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
+              <th className="px-3 py-3 text-center text-gray-400 font-medium">#</th>
               {columns.map(c => (
                 <th
                   key={c.key}
@@ -341,8 +343,9 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
           </thead>
           <tbody className="divide-y divide-gray-100">
             {/* Data rows */}
-            {filtered.map(s => (
+            {filtered.map((s, i) => (
               <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-3 py-2.5 text-center text-xs text-gray-400 tabular-nums select-none">{i + 1}</td>
                 {columns.map(c => (
                   <td key={c.key} className="px-4 py-2.5 overflow-hidden">
                     {c.type === 'status' ? (
@@ -416,6 +419,7 @@ export default function LogisticsTracker({ shipments, onAdd, onUpdate, onDelete 
             return (
               <tfoot>
                 <tr className="bg-gray-50 border-t-2 border-gray-300 font-semibold text-sm">
+                  <td className="px-3 py-2.5 text-center text-xs text-gray-400 select-none">Σ</td>
                   {columns.map((c, i) => (
                     <td key={c.key} className="px-4 py-2.5 overflow-hidden">
                       {i === 0 && <span className="text-xs uppercase tracking-wider text-gray-500">Total</span>}

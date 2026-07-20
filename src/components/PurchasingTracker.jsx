@@ -394,6 +394,7 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
         <div className="overflow-auto max-h-[65vh]">
           <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
             <colgroup>
+              <col style={{ width: 44 }} />
               <col style={{ width: 40 }} />
               {columns.map(c => <col key={c.key} style={{ width: widths[c.key] }} />)}
               <col style={{ width: widths.actions }} />
@@ -401,6 +402,7 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
             </colgroup>
             <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
+                <th className="px-3 py-3 text-center text-gray-400 font-medium">#</th>
                 <th className="px-3 py-3 text-center">
                   <input
                     type="checkbox"
@@ -439,10 +441,11 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(part => {
+              {filtered.map((part, i) => {
                 const onOrder = Number(part.qty_on_order) || 0
                 return (
                   <tr key={part.id} className={`transition-colors ${selected.has(part.id) ? 'bg-sky-50' : 'hover:bg-gray-50'}`}>
+                    <td className="px-3 py-2.5 text-center text-xs text-gray-400 tabular-nums select-none">{i + 1}</td>
                     <td className="px-3 py-2.5 text-center">
                       <input
                         type="checkbox"
@@ -492,7 +495,7 @@ export default function PurchasingTracker({ parts, onUpdate, readOnly = false })
                 )
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={columns.length + 3} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
+                <tr><td colSpan={columns.length + 4} className="px-4 py-8 text-center text-gray-400">No parts match this filter.</td></tr>
               )}
             </tbody>
           </table>

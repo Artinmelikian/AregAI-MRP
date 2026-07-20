@@ -280,6 +280,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
       <div className="overflow-auto max-h-[65vh]">
         <table className="text-sm" style={{ tableLayout: 'fixed', width: '100%' }}>
           <colgroup>
+            <col style={{ width: 44 }} />
             {!readOnly && <col style={{ width: 40 }} />}
             {columns.map(col => (
               <col key={col.key} style={{ width: widths[col.key] ?? DEFAULT_WIDTHS[col.key] }} />
@@ -289,6 +290,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
           </colgroup>
           <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
             <tr>
+              <th className="px-3 py-3 text-center text-gray-400 font-medium">#</th>
               {!readOnly && (
                 <th className="px-3 py-3 text-center">
                   <input
@@ -331,6 +333,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
           <tbody className="divide-y divide-gray-100">
             {adding && (
               <tr className="bg-sky-50">
+                <td className="px-3 py-2" />
                 {!readOnly && <td className="px-3 py-2" />}
                 {columns.map(col => (
                   <td key={col.key} className="px-4 py-2">
@@ -360,8 +363,9 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
                 <td />
               </tr>
             )}
-            {filteredParts.map(part => (
+            {filteredParts.map((part, i) => (
               <tr key={part.id} className={`transition-colors ${selected.has(part.id) ? 'bg-sky-50' : 'hover:bg-gray-50'}`}>
+                <td className="px-3 py-2.5 text-center text-xs text-gray-400 tabular-nums select-none">{i + 1}</td>
                 {!readOnly && (
                   <td className="px-3 py-2.5 text-center">
                     <input
@@ -393,7 +397,7 @@ export default function PartsTable({ parts, onUpdate, onDelete, onAdd, readOnly 
               </tr>
             ))}
             {!adding && filteredParts.length === 0 && (
-              <tr><td colSpan={columns.length + (readOnly ? 2 : 3)} className="px-4 py-8 text-center text-gray-400">
+              <tr><td colSpan={columns.length + (readOnly ? 3 : 4)} className="px-4 py-8 text-center text-gray-400">
                 {search ? `No parts match "${search}".` : 'No parts yet. Click "Add Part" to get started.'}
               </td></tr>
             )}
